@@ -1,0 +1,37 @@
+# Maven
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+
+
+# Logs
+*.log
+logs/
+*.pid
+
+# OS
+.DS_Store
+Thumbs.db
+
+# # Environment / Config
+# .env
+# *.properties.local
+# application-*.yml
+# application-*.properties
+
+# Other
+*.class
+*.jar
+*.war
+*.ear
+
+# Test reports
+/test-output/
+surefire-reports/
