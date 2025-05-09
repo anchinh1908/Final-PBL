@@ -48,7 +48,3 @@ def api_plan_trip():
     places = data.get("places", [])
     trip_plan = plan_trip(days, preferences, hotels, places)
     return jsonify({"itinerary": trip_plan})
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
