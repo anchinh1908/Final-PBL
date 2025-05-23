@@ -2,3 +2,4 @@ Flask==3.0.3
 openai==1.72.0
 python-dotenv==1.1.0
 waitress==3.0.2
+cloudinary==1.44.0
