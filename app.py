@@ -84,3 +84,7 @@ def upload_multiple():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route("/hearth", methods=["GET"])
+def hearth_check():
+    return jsonify({"status": "alive"}), 200
