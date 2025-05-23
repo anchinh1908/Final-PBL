@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify
 from openai import OpenAI
 from dotenv import load_dotenv
+from flask_cors import CORS
 import os
 import cloudinary
 import cloudinary.uploader
-import cloudinary.api
+# import cloudinary.api
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -16,6 +17,7 @@ cloudinary.config(
 )
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173", "https://final-pbl.onrender.com"])
 
 def plan_trip( days, preferences, hotels, places):
     hotel_str = "\n".join([f"- {h['name']}: {h['description']}" for h in hotels])
