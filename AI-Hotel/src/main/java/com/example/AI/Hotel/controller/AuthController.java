@@ -6,6 +6,7 @@ import com.example.AI.Hotel.model.User;
 import com.example.AI.Hotel.repository.UserRepository;
 import com.example.AI.Hotel.service.MailService;
 import com.example.AI.Hotel.service.UserService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -169,15 +173,69 @@ public class AuthController {
         }
     }
 
-    @GetMapping("oauth2/success")
-    public ResponseEntity<Map<String, Object>> oauth2LoginSuccess(@AuthenticationPrincipal OAuth2User principal) {
-        Map<String, Object> response = new HashMap<>();
+//    @GetMapping("oauth2/success")
+//    public ResponseEntity<Map<String, Object>> oauth2LoginSuccess(@AuthenticationPrincipal OAuth2User principal) {
+//        Map<String, Object> response = new HashMap<>();
+//
+//        // Kiểm tra principal
+//        if (principal == null) {
+//            logger.error("OAuth2 principal is null");
+//            response.put("message", "Đăng nhập thất bại");
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+//        }
+//        logger.info("Google principal attributes: {}", principal.getAttributes());
+//
+//        // Lấy thông tin từ Google
+//        String googleId = principal.getAttribute("sub");
+//        String email = principal.getAttribute("email");
+//        String name = principal.getAttribute("name");
+//        String picture = principal.getAttribute("picture");
+//
+//        // Kiểm tra thông tin bắt buộc
+//        if (googleId == null || email == null) {
+//            logger.error("Missing required attributes: googleId={}, email={}", googleId, email);
+//            response.put("message", "Thiếu thông tin người dùng cần thiết (googleId hoặc email)");
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+//        }
+//
+//        try {
+//            // Tìm hoặc tạo người dùng
+//            User user = userRepository.findByGoogleId(googleId).orElseGet(() -> {
+//                User newUser = new User();
+//                newUser.setEmail(email); // email = "anchinh794@gmail.com"
+//                newUser.setFullName(name != null ? name : "Unknown");
+//                newUser.setAvatarUrl(picture);
+//                newUser.setGoogleId(googleId);
+//                newUser.setRole(User.Role.USER);
+////                newUser.setIsDeleted(false);
+//                return userRepository.save(newUser);
+//            });
+//
+//            // Tạo JWT
+////            String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+//            String token = jwtUtil.generateToken(email, user.getRole().name());
+//            logger.info("Generated JWT for user: {}", email);
+//
+//            response.put("token", token);
+//            response.put("message", "Đăng nhập bằng Google thành công");
+//            return ResponseEntity.ok(response);
+//
+//        } catch (Exception e) {
+//            logger.error("Error during OAuth2 login for email {}: {}", email, e.getMessage());
+//            response.put("message", "Login failed: " + e.getMessage());
+//            response.put("status", HttpStatus.UNAUTHORIZED.value());
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+//        }
+//    }
 
+    @GetMapping("/oauth2/success")
+    public void oauth2LoginSuccess(@AuthenticationPrincipal OAuth2User principal, HttpServletResponse response) throws Exception {
         // Kiểm tra principal
         if (principal == null) {
             logger.error("OAuth2 principal is null");
-            response.put("message", "Đăng nhập thất bại");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+            String errorMessage = URLEncoder.encode("Đăng nhập thất bại", StandardCharsets.UTF_8);
+            response.sendRedirect("http://localhost:5173/callback?status=false&message=" + errorMessage);
+            return;
         }
         logger.info("Google principal attributes: {}", principal.getAttributes());
 
@@ -190,40 +248,40 @@ public class AuthController {
         // Kiểm tra thông tin bắt buộc
         if (googleId == null || email == null) {
             logger.error("Missing required attributes: googleId={}, email={}", googleId, email);
-            response.put("message", "Thiếu thông tin người dùng cần thiết (googleId hoặc email)");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            String errorMessage = URLEncoder.encode("Thiếu thông tin người dùng cần thiết (googleId hoặc email)", StandardCharsets.UTF_8);
+            response.sendRedirect("http://localhost:5173/callback?status=false&message=" + errorMessage);
+            return;
         }
 
         try {
             // Tìm hoặc tạo người dùng
             User user = userRepository.findByGoogleId(googleId).orElseGet(() -> {
                 User newUser = new User();
-                newUser.setEmail(email); // email = "anchinh794@gmail.com"
+                newUser.setEmail(email);
                 newUser.setFullName(name != null ? name : "Unknown");
                 newUser.setAvatarUrl(picture);
                 newUser.setGoogleId(googleId);
                 newUser.setRole(User.Role.USER);
-//                newUser.setIsDeleted(false);
                 return userRepository.save(newUser);
             });
 
             // Tạo JWT
-//            String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
             String token = jwtUtil.generateToken(email, user.getRole().name());
             logger.info("Generated JWT for user: {}", email);
 
-            response.put("token", token);
-            response.put("message", "Đăng nhập bằng Google thành công");
-            return ResponseEntity.ok(response);
+            // Mã hóa message và token để an toàn trong URL
+            String encodedMessage = URLEncoder.encode("Đăng nhập bằng Google thành công", StandardCharsets.UTF_8);
+            String encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8);
+
+            // Redirect với query parameters
+            response.sendRedirect("http://localhost:5173/callback?status=false&token=" + encodedToken + "&message=" + encodedMessage);
 
         } catch (Exception e) {
             logger.error("Error during OAuth2 login for email {}: {}", email, e.getMessage());
-            response.put("message", "Login failed: " + e.getMessage());
-//            response.put("status", HttpStatus.UNAUTHORIZED.value());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            String errorMessage = URLEncoder.encode("Đăng nhập thất bại: " + e.getMessage(), StandardCharsets.UTF_8);
+            response.sendRedirect("http://localhost:5173/callback?status=false&message=" + errorMessage);
         }
     }
-
     @GetMapping("oauth2/failure")
     public ResponseEntity<Map<String, Object>> oauth2LoginFailure() {
         Map<String, Object> response = new HashMap<>();
