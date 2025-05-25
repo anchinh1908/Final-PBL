@@ -81,7 +81,7 @@ public interface PlaceRepository extends JpaRepository<Place, Integer> {
     );
 
     // lọc theo quận
-    @Query(value = "SELECT p FROM Place p " +
-            "WHERE TRIM(SPLIT_PART(p.address, ',', 3)) LIKE '%' || :searchTerm || '%'")
+    @Query(value = "SELECT * FROM places p WHERE TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(p.address, ',', 3), ',', -1)) LIKE CONCAT('%', :district, '%')",
+            nativeQuery = true)
     Page<Place> findByDistrict(@Param("district") String district, Pageable pageable);
 }

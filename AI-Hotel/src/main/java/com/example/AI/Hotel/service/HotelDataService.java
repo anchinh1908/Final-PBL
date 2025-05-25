@@ -46,7 +46,6 @@ public class HotelDataService {
         this.roomRepository = roomRepository;
         this.placeRepository = placeRepository;
     }
-
     @Transactional(readOnly = true)
     public Page<HotelSearchResponse> getAllHotels(int page, int size) {
         logger.info("Fetching hotels with pagination - page: {}, size: {}", page, size);
