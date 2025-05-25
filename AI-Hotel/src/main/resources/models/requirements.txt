@@ -1,0 +1,7 @@
+Admin có thể quyết định ẩn hoặc hiện một số room, hotel, hoặc place trên giao diện người dung
+Admin có thể quản lý user (thêm, sửa, xóa, khóa tài khoản, v.v.).
+Admin có thể tạo các lịch trình mẫu (dựa trên dữ liệu cố định) để gợi ý cho user
+Admin có thể tạo báo cáo về:
+  Các khách sạn/địa điểm được tìm kiếm nhiều nhất.
+  Số lượng user hoạt động hàng ngày/tháng.
+  Hiệu suất tìm kiếm (thời gian trả về kết quả, độ chính xác của vector embedding).
