@@ -274,7 +274,7 @@ public class AuthController {
             String encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8);
 
             // Redirect với query parameters
-            response.sendRedirect("http://localhost:5173/callback?status=false&token=" + encodedToken + "&message=" + encodedMessage);
+            response.sendRedirect("http://localhost:5173/callback?status=true&token=" + encodedToken + "&message=" + encodedMessage);
 
         } catch (Exception e) {
             logger.error("Error during OAuth2 login for email {}: {}", email, e.getMessage());

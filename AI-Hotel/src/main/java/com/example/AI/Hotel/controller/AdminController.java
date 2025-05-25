@@ -37,14 +37,12 @@ public class AdminController {
 
     private final AdminService adminService;
     private final ObjectMapper objectMapper;
-    private final UserRepository userRepository;
     private final UserService userService;
 
     @Autowired
     public AdminController(AdminService adminService, @Qualifier("objectMapper") ObjectMapper objectMapper, UserRepository userRepository, UserService userService) {
         this.adminService = adminService;
         this.objectMapper = objectMapper;
-        this.userRepository = userRepository;
         this.userService = userService;
     }
 
