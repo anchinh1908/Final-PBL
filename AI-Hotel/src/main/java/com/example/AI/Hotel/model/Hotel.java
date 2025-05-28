@@ -79,4 +79,6 @@ public class Hotel {
 //    @JsonIgnore
     private List<HotelEmbedding> embeddings;
 
+
+
 }

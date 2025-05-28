@@ -12,6 +12,9 @@ import org.springframework.data.domain.Pageable;
 public interface RoomRepository extends JpaRepository<RoomType, Integer> {
     Page<RoomType> findAll(Pageable pageable); // phân trang
 
+    List<RoomType> findAll(); // Lấy toàn bộ phòng
+//    List<RoomType> findByHotelId(Integer hotelId);
+
     Page<RoomType> findByNameContainingIgnoreCase(Pageable pageable,String name);
 
     // Truy vấn lấy danh sách RoomType dựa trên danh sách ID
@@ -24,6 +27,29 @@ public interface RoomRepository extends JpaRepository<RoomType, Integer> {
     // tìm phòng chỉ theo số khách
     @Query("SELECT r FROM RoomType r WHERE r.numberOfGuests <= :numberOfGuests")
     List<RoomType> findByGuests(@Param("numberOfGuests") Integer numberOfGuests);
+
+//    @Query("SELECT rt FROM RoomType rt " +
+//            "WHERE rt.hotel.id = :hotelId " +
+//            "AND (:minPrice IS NULL OR rt.price >= :minPrice) " +
+//            "AND (:maxPrice IS NULL OR rt.price <= :maxPrice) " +
+//            "AND (:numberOfGuests IS NULL OR rt.numberOfGuests >= :numberOfGuests)")
+//    Page<RoomType> findRoomsByHotelIdAndPriceAndGuests(
+//            @Param("hotelId") Integer hotelId,
+//            @Param("minPrice") Integer minPrice,
+//            @Param("maxPrice") Integer maxPrice,
+//            @Param("numberOfGuests") Integer numberOfGuests,
+//            Pageable pageable);
+
+    @Query("SELECT rt FROM RoomType rt " +
+            "WHERE rt.hotel.id IN :hotelIds " +
+            "AND (:minPrice IS NULL OR rt.price >= :minPrice) " +
+            "AND (:maxPrice IS NULL OR rt.price <= :maxPrice) " +
+            "AND (:numberOfGuests IS NULL OR rt.numberOfGuests >= :numberOfGuests)")
+    List<RoomType> findRoomsByHotelIdsAndPriceAndGuests(
+            @Param("hotelIds") List<Integer> hotelIds,
+            @Param("minPrice") Integer minPrice,
+            @Param("maxPrice") Integer maxPrice,
+            @Param("numberOfGuests") Integer numberOfGuests);
 
     // truy vấn phòng theo giá và so luong khách
     @Query("SELECT rt FROM RoomType rt WHERE rt.price <= :maxPrice AND rt.numberOfGuests <= :numberOfGuests")

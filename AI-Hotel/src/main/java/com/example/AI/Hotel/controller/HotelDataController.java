@@ -151,17 +151,28 @@ public class HotelDataController {
             @RequestParam(value = "facilities", required = false) String facilitiesParam,
             @RequestParam(defaultValue = "true") boolean matchAll,
             @RequestParam(value = "minPrice", defaultValue = "100000") int minPrice,
-            @RequestParam(value = "maxPrice", defaultValue = "4000000") int maxPrice,
+            @RequestParam(value = "maxPrice", defaultValue = "10000000") int maxPrice,
             @RequestParam(required = false) Integer ratingStars) {
         try {
-            List<String> filterFacilities = (facilitiesParam == null || facilitiesParam.trim().isEmpty())
-                    ? List.of()
-                    : Arrays.stream(facilitiesParam.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .toList();
+            // Log giá trị facilitiesParam gốc
+            log.info("Received facilitiesParam: {}", facilitiesParam);
 
-            Page<HotelSearchResponse> filteredPage = hotelDataService.filterHotelsByFacilitiesAndPrice(
+            // Xử lý facilitiesParam: loại bỏ dấu [] nếu có, và tách thành List<String>
+            List<String> filterFacilities = List.of();
+            if (facilitiesParam != null && !facilitiesParam.trim().isEmpty()) {
+                // Loại bỏ dấu [] nếu người dùng truyền dạng [2 nhà hàng]
+                String cleanedFacilities = facilitiesParam.trim().replaceAll("[\\[\\]]", "");
+                // Tách chuỗi bằng dấu phẩy, loại bỏ khoảng trắng thừa và lọc chuỗi rỗng
+                filterFacilities = Arrays.stream(cleanedFacilities.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .toList();
+            }
+
+            // Log giá trị filterFacilities sau khi xử lý
+            log.info("Parsed filterFacilities: {}", filterFacilities);
+
+            Page<HotelSearchResponse> filteredPage = hotelDataService.filterHotels(
                     page,
                     size,
                     filterFacilities,
@@ -179,6 +190,7 @@ public class HotelDataController {
             return buildErrorResponse(e);
         }
     }
+
 
     @PostMapping("/filter-by-district")
     public ResponseEntity<Map<String, Object>> getPlacesByDistrict(

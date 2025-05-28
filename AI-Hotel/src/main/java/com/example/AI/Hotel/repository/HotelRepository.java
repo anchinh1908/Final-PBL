@@ -16,11 +16,64 @@ import org.springframework.data.domain.Pageable;
 public interface HotelRepository extends JpaRepository<Hotel, Integer> {
     Page<Hotel> findAll(Pageable pageable);
 
+    List<Hotel> findAll();
+
     Page<Hotel> findByNameContainingIgnoreCase(Pageable pageable, String name);
 
     // Tìm khách sạn theo danh sách ID và district
     @Query("SELECT h FROM Hotel h WHERE h.id IN :ids AND h.district = :district")
     List<Hotel> findAllByIdAndDistrict(@Param("ids") Iterable<Integer> ids, @Param("district") String district);
+
+    // sử dụng native query (khác JPQL)
+    @Query(value = "SELECT * FROM hotels h " +
+            "WHERE (:ratingStars IS NULL OR h.rating_stars = :ratingStars) " +
+            "AND ((:facilities IS NULL OR :normalizedFacilitiesStr IS NULL OR :normalizedFacilitiesStr = '') OR " +
+            "(:matchAll = true AND (" +
+            "  SELECT COUNT(*) " +
+            "  FROM jsonb_array_elements_text(h.facilities) AS f " +
+            "  WHERE LOWER(UNACCENT(f)) IN (SELECT LOWER(UNACCENT(unnest(string_to_array(:normalizedFacilitiesStr, ',')))) " +
+            "  WHERE :normalizedFacilitiesStr IS NOT NULL AND :normalizedFacilitiesStr != '') " +
+            ") = :facilitiesSize " +
+            ")) " +
+            "OR ((:facilities IS NULL OR :normalizedFacilitiesStr IS NULL OR :normalizedFacilitiesStr = '') OR " +
+            "(:matchAll = false AND EXISTS (" +
+            "  SELECT 1 " +
+            "  FROM jsonb_array_elements_text(h.facilities) AS f " +
+            "  WHERE LOWER(UNACCENT(f)) IN (SELECT LOWER(UNACCENT(unnest(string_to_array(:normalizedFacilitiesStr, ',')))) " +
+            "  WHERE :normalizedFacilitiesStr IS NOT NULL AND :normalizedFacilitiesStr != '') " +
+            ")))",
+            countQuery = "SELECT COUNT(*) FROM hotels h " +
+                    "WHERE (:ratingStars IS NULL OR h.rating_stars = :ratingStars) " +
+                    "AND ((:facilities IS NULL OR :normalizedFacilitiesStr IS NULL OR :normalizedFacilitiesStr = '') OR " +
+                    "(:matchAll = true AND (" +
+                    "  SELECT COUNT(*) " +
+                    "  FROM jsonb_array_elements_text(h.facilities) AS f " +
+                    "  WHERE LOWER(UNACCENT(f)) IN (SELECT LOWER(UNACCENT(unnest(string_to_array(:normalizedFacilitiesStr, ',')))) " +
+                    "  WHERE :normalizedFacilitiesStr IS NOT NULL AND :normalizedFacilitiesStr != '') " +
+                    ") = :facilitiesSize " +
+                    ")) " +
+                    "OR ((:facilities IS NULL OR :normalizedFacilitiesStr IS NULL OR :normalizedFacilitiesStr = '') OR " +
+                    "(:matchAll = false AND EXISTS (" +
+                    "  SELECT 1 " +
+                    "  FROM jsonb_array_elements_text(h.facilities) AS f " +
+                    "  WHERE LOWER(UNACCENT(f)) IN (SELECT LOWER(UNACCENT(unnest(string_to_array(:normalizedFacilitiesStr, ',')))) " +
+                    "  WHERE :normalizedFacilitiesStr IS NOT NULL AND :normalizedFacilitiesStr != '') " +
+                    ")))",
+            nativeQuery = true)
+    Page<Hotel> findByRatingStarsAndFacilities(
+            @Param("ratingStars") Integer ratingStars,
+            @Param("facilities") List<String> facilities,
+            @Param("normalizedFacilitiesStr") String normalizedFacilitiesStr,
+            @Param("facilitiesSize") Long facilitiesSize,
+            @Param("matchAll") boolean matchAll,
+            Pageable pageable);
+
+    //    @Query("SELECT h FROM Hotel h " +
+//            "WHERE (:ratingStars IS NULL OR h.ratingStars = :ratingStars)")
+//    Page<Hotel> findByRatingStarsAndFacilities(
+//            @Param("ratingStars") Integer ratingStars,
+//            @Param("facilities") List<String> facilities,
+//            Pageable pageable);
 
     @Query(value = "SELECT h.id, h.embedding, 1 - (h.embedding <=> CAST(:embedding AS vector)) AS similarity " +
             "FROM hotels h " +

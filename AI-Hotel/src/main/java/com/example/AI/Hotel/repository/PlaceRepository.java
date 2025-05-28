@@ -1,6 +1,5 @@
 package com.example.AI.Hotel.repository;
 
-import com.example.AI.Hotel.model.Hotel;
 import com.example.AI.Hotel.model.Place;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -46,17 +45,7 @@ public interface PlaceRepository extends JpaRepository<Place, Integer> {
             @Param("threshold") double threshold,
             @Param("limit") int limit
     );
-    /*
-    @Query(value = "SELECT p.id, p.title, ST_Distance(h.coordinates, p.coordinates) AS distance " +
-            "FROM hotels h, places p " +
-            "WHERE h.id = :hotelId " +
-            "AND ST_DWithin(h.coordinates, p.coordinates, :maxDistance) " +
-            "ORDER BY distance " +
-            "LIMIT :limit", nativeQuery = true)
-    List<Object[]> findNearbyPlaces(@Param("hotelId") Integer hotelId,
-                                    @Param("maxDistance") double maxDistance,
-                                    @Param("limit") int limit);
-     */
+
     @Query(value = """
         SELECT 
             p.id, 
@@ -80,8 +69,23 @@ public interface PlaceRepository extends JpaRepository<Place, Integer> {
             @Param("limit") int limit
     );
 
-    // lọc theo quận
-    @Query(value = "SELECT * FROM places p WHERE TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(p.address, ',', 3), ',', -1)) LIKE CONCAT('%', :district, '%')",
+    // LỌC THEO QUẬN
+    @Query(value = "SELECT * FROM places p " +
+            "WHERE EXISTS (" +
+            "    SELECT 1 " +
+            "    FROM unnest(string_to_array(p.address, ',')) WITH ORDINALITY AS addr(part, idx) " +
+            "    WHERE TRIM(part) ILIKE '%' || :district || '%' " +
+            "    AND TRIM(part) ILIKE ANY (ARRAY['%Hải Châu%', '%Sơn Trà%', '%Thanh Khê%', '%Liên Chiểu%', '%Ngũ Hành Sơn%', '%Cẩm Lệ%', '%Hòa Vang%'])" +
+            ")",
+            countQuery = "SELECT COUNT(*) FROM places p " +
+                    "WHERE EXISTS (" +
+                    "    SELECT 1 " +
+                    "    FROM unnest(string_to_array(p.address, ',')) WITH ORDINALITY AS addr(part, idx) " +
+                    "    WHERE TRIM(part) ILIKE '%' || :district || '%' " +
+                    "    AND TRIM(part) ILIKE ANY (ARRAY['%Hải Châu%', '%Sơn Trà%', '%Thanh Khê%', '%Liên Chiểu%', '%Ngũ Hành Sơn%', '%Cẩm Lệ%', '%Hòa Vang%'])" +
+                    ")",
             nativeQuery = true)
     Page<Place> findByDistrict(@Param("district") String district, Pageable pageable);
+
+
 }

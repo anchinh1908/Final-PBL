@@ -19,12 +19,12 @@ public class PlaceTrip {
     private Integer placeId;
 
     // Quan hệ với User (nếu cần)
-//    @ManyToOne
-//    @JoinColumn(name = "user_id", insertable = false, updatable = false)
-//    private User user;
+    @ManyToOne
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    private User user;
 
     // Quan hệ với Place
-//     @ManyToOne
-//     @JoinColumn(name = "place_id", insertable = false, updatable = false)
-//     private Place place;
+     @ManyToOne
+     @JoinColumn(name = "place_id", insertable = false, updatable = false)
+     private Place place;
 }

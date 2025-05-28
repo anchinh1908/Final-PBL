@@ -115,9 +115,9 @@ public class UserService {
         User user = userRepository.findByEmailAndIsDeletedFalse(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng"));
 
-        if (user.getRole().equals(User.Role.ADMIN)) {
-            throw new UsernameNotFoundException("Không tìm thấy người dùng");
-        }
+//        if (user.getRole().equals(User.Role.ADMIN)) {
+//            throw new UsernameNotFoundException("Không tìm thấy người dùng");
+//        }
 
         UserDTO userDTO = new UserDTO();
         userDTO.setId(user.getId());

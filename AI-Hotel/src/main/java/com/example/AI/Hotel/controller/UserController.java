@@ -403,7 +403,7 @@ public class UserController {
 
             response.put("status", HttpStatus.OK.value());
             response.put("message", hotelTrips.isEmpty() ? "Không có khách sạn trong lịch trình" : "Lấy danh sách khách sạn thành công");
-            response.put("hotels", hotelTrips);
+            response.put("data", hotelTrips);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             logger.warn("Failed to fetch hotel trips: {}", e.getMessage());
@@ -412,6 +412,34 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } catch (Exception e) {
             logger.error("Error fetching hotel trips: {}", e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.put("message", "Server error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @GetMapping("/place-trip-list")
+    public ResponseEntity<Map<String, Object>> getPlaceTrips() {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+
+            List<PlaceDTO> placeTrips = hotelDataService.getPlaceTripsByUser(user.getId());
+
+            response.put("status", HttpStatus.OK.value());
+            response.put("message", placeTrips.isEmpty() ? "Không có địa điểm trong lịch trình" : "Lấy danh sách địa điểm thành công");
+            response.put("data", placeTrips);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Failed to fetch place trips: {}", e.getMessage());
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        } catch (Exception e) {
+            logger.error("Error fetching place trips: {}", e.getMessage());
             response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             response.put("message", "Server error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
