@@ -7,6 +7,7 @@ import com.example.AI.Hotel.repository.UserRepository;
 import com.example.AI.Hotel.service.HotelDataService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -150,9 +151,9 @@ public class HotelDataController {
             @RequestParam(required = false) Integer numberOfGuests,
             @RequestParam(value = "facilities", required = false) String facilitiesParam,
             @RequestParam(defaultValue = "true") boolean matchAll,
-            @RequestParam(value = "minPrice", defaultValue = "100000") int minPrice,
-            @RequestParam(value = "maxPrice", defaultValue = "10000000") int maxPrice,
-            @RequestParam(required = false) Integer ratingStars) {
+            @RequestParam(value = "minPrice", defaultValue = "10000",required = false) int minPrice,
+            @RequestParam(value = "maxPrice", defaultValue = "10000000",required = false) int maxPrice,
+            @RequestParam(required = false) Integer ratingStars, Pageable pageable) {
         try {
             // Log giá trị facilitiesParam gốc
             log.info("Received facilitiesParam: {}", facilitiesParam);
@@ -168,7 +169,6 @@ public class HotelDataController {
                         .filter(s -> !s.isEmpty())
                         .toList();
             }
-
             // Log giá trị filterFacilities sau khi xử lý
             log.info("Parsed filterFacilities: {}", filterFacilities);
 
@@ -182,6 +182,7 @@ public class HotelDataController {
                     numberOfGuests,
                     ratingStars
             );
+            log.info("Page size: {}", pageable.getPageSize());
 
             return buildPagedResponse(filteredPage, "Không tìm thấy khách sạn với các tiện ích, giá phòng và số lượng khách, số sao được yêu cầu");
 
@@ -191,7 +192,6 @@ public class HotelDataController {
         }
     }
 
-
     @PostMapping("/filter-by-district")
     public ResponseEntity<Map<String, Object>> getPlacesByDistrict(
             @RequestParam String district,
@@ -199,6 +199,7 @@ public class HotelDataController {
             @RequestParam(defaultValue = "20") int size) {
         try {
             Page<PlaceDTO> placesPage = hotelDataService.getPlacesByDistrict(district, page, size);
+            log.info("page{}, size{}", page, size);
             return buildPagedResponse(placesPage, "Không tìm thấy địa điểm ở quận " + district);
         } catch (Exception e) {
             log.error("Error fetching places by district: district={}, page={}, size={}", district, page, size, e);

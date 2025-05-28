@@ -36,7 +36,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         System.out.println("Loading user with email: " + email);
         User user = userRepository.findByEmailAndIsDeletedFalse(email) // Sử dụng findByEmailAndIsDeletedFalse để đảm bảo tính nhất quán
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng với email: " + email));
         System.out.println("Found user: " + user);
 
         String password = user.getPassword() != null ? user.getPassword() : "{noop}"; // Sử dụng {noop} cho OAuth

@@ -18,11 +18,11 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private Long expiration;
 
-    @PostConstruct
-    public void init() {
-        System.out.println("JWT Secret: " + secret);
-        System.out.println("JWT Expiration: " + expiration);
-    }
+//    @PostConstruct
+//    public void init() {
+//        System.out.println("JWT Secret: " + secret);
+//        System.out.println("JWT Expiration: " + expiration);
+//    }
 
     public String generateToken(String email, String role) {
         return Jwts.builder()

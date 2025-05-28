@@ -93,7 +93,6 @@ public class UserService {
             Pageable pageable = PageRequest.of(page - 1, size);
             Page<User> usersPage = userRepository.findAll(pageable);
             logger.info("Found {} places in page {}", usersPage.getTotalElements(), page);
-
             if (usersPage.isEmpty()) {
                 logger.warn("No users found for page: {}", page);
                 return Page.empty(pageable);
@@ -160,7 +159,8 @@ public class UserService {
         userDTO.setDateOfBirth(user.getDateOfBirth());
         userDTO.setAddress(user.getAddress());
         userDTO.setAvatarUrl(user.getAvatarUrl());
-        user.setDeleted(user.isDeleted());
+        userDTO.setDeleted(user.isDeleted());
+//        user.setDeleted(user.isDeleted());
         return userDTO;
     }
 }

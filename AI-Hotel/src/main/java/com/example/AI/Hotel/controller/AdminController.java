@@ -7,6 +7,7 @@ import com.example.AI.Hotel.model.RoomType;
 import com.example.AI.Hotel.model.User;
 import com.example.AI.Hotel.repository.UserRepository;
 import com.example.AI.Hotel.service.AdminService;
+import com.example.AI.Hotel.service.HotelDataService;
 import com.example.AI.Hotel.service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,12 +40,14 @@ public class AdminController {
     private final AdminService adminService;
     private final ObjectMapper objectMapper;
     private final UserService userService;
+    private final HotelDataService hotelDataService;
 
     @Autowired
-    public AdminController(AdminService adminService, @Qualifier("objectMapper") ObjectMapper objectMapper, UserRepository userRepository, UserService userService) {
+    public AdminController(AdminService adminService, @Qualifier("objectMapper") ObjectMapper objectMapper, UserRepository userRepository, UserService userService, HotelDataService hotelDataService) {
         this.adminService = adminService;
         this.objectMapper = objectMapper;
         this.userService = userService;
+        this.hotelDataService = hotelDataService;
     }
 
     @PutMapping("/users/{userId}/disable")
@@ -770,10 +774,37 @@ public class AdminController {
         try {
             // Không cần trừ 1 từ page, vì Spring Data đã xử lý one-based index
             Page<UserDTO> userPage = userService.getAllUser(page, size);
+//            userPage.getContent().forEach(user ->
+//                    logger.info("User ID: {}, isDeleted: {}", user.getId(), user.isDeleted())
+//            );
             return HotelDataController.buildPagedResponse(userPage, "Không tìm thấy người dùng");
         } catch (Exception e) {
-//            log.error("Error fetching all rooms: page={}, size={}", page, size, e);
+            logger.error("Error fetching all rooms: page={}, size={}", page, size, e);
             return buildErrorResponse(e);
+        }
+    }
+
+//    @GetMapping("/count-hotels")
+//    public ResponseEntity<List<String>> getNumbersCountOfHotels() {
+//        try {
+//            List<String> totalHotels = hotelDataService.getNumbersCountOfHotels();
+//            return ResponseEntity.ok(totalHotels);
+//        } catch (Exception e) {
+//            return ResponseEntity.status(500).body(Collections.singletonList("Lỗi khi đếm tổng số khách sạn: " + e.getMessage()));
+//        }
+//    }
+    @GetMapping("/count-number")
+    public ResponseEntity<Map<String, Object>> getNumbersCountOfHotels() {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Map<String, Long> totalsMessage = hotelDataService.getNumbersCounts();
+            response.put("Total Item", totalsMessage);
+            response.put("status", "200");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("message", "Lỗi khi đếm tổng số khách sạn: " + e.getMessage());
+            response.put("status", "error");
+            return ResponseEntity.status(500).body(response);
         }
     }
 

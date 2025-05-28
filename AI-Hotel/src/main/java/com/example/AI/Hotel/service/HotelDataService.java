@@ -65,6 +65,37 @@ public class HotelDataService {
             throw new RuntimeException("Error fetching hotels: " + e.getMessage(), e);
         }
     }
+//    @Transactional(readOnly = true)
+//    public Map<String, Integer> getNumbersCounts() {
+//        try {
+//            long totalHotels = hotelRepository.count();
+//            long totalPlaces = placeRepository.count();
+//            long totalRooms = roomRepository.count();
+////            logger.info("Total number of hotels counted: {}", totalHotels);
+//            return (Map<String, Integer>) Collections.singletonList("Total Hotel" + totalHotels + "Total Places" + totalPlaces + "Total Room" +  totalRooms);
+//        } catch (Exception e) {
+//            logger.error("Error counting total hotels: {}", e.getMessage(), e);
+//            throw new RuntimeException("Error counting hotels: " + e.getMessage(), e);
+//        }
+//    }
+    @Transactional(readOnly = true)
+    public Map<String, Long> getNumbersCounts() {
+        try {
+            long totalHotels = hotelRepository.count();
+            long totalPlaces = placeRepository.count();
+            long totalRooms = roomRepository.count();
+            logger.info("Total number of hotels: {}, places: {}, rooms: {}", totalHotels, totalPlaces, totalRooms);
+
+            Map<String, Long> totals = new HashMap<>();
+            totals.put("Total Hotel", totalHotels);
+            totals.put("Total Places", totalPlaces);
+            totals.put("Total Room", totalRooms);
+            return totals;
+        } catch (Exception e) {
+            logger.error("Error counting total hotels: {}", e.getMessage(), e);
+            throw new RuntimeException("Error counting hotels: " + e.getMessage(), e);
+        }
+    }
 
     @Transactional(readOnly = true)
     public Page<RoomDTO> getAllRooms(int page, int size) {
@@ -397,6 +428,7 @@ public class HotelDataService {
                     List<RoomType> hotelRooms = roomsByHotelId.getOrDefault(hotelId, List.of());
 
                     // Kiểm tra priceMatch và numberOfGuestsMatch
+                    // nếu mà khách sạn không có th
                     boolean priceMatch = !hotelRooms.isEmpty() && hotelRooms.stream()
                             .filter(room -> room.getPrice() != null)
                             .anyMatch(room -> room.getPrice() >= minPrice && room.getPrice() <= maxPrice);
@@ -407,11 +439,9 @@ public class HotelDataService {
                                 .filter(room -> room.getNumberOfGuests() != null)
                                 .anyMatch(room -> room.getNumberOfGuests().equals(numberOfGuests));
                     }
-
-                    logger.info("Price match for hotel {}: {}", hotelId, priceMatch);
-                    logger.info("NumberOfGuests match for hotel {}: {}, numberOfGuests: {}", hotelId, numberOfGuestsMatch, numberOfGuests);
-                    logger.info("Rating star match for hotel {}: {}", hotelId, ratingStars != null && hotelDTO.getRatingStars() != null && hotelDTO.getRatingStars().equals(ratingStars));
-
+//                    logger.info("Price match for hotel {}: {}", hotelId, priceMatch);
+//                    logger.info("NumberOfGuests match for hotel {}: {}, numberOfGuests: {}", hotelId, numberOfGuestsMatch, numberOfGuests);
+//                    logger.info("Rating star match for hotel {}: {}", hotelId, ratingStars != null && hotelDTO.getRatingStars() != null && hotelDTO.getRatingStars().equals(ratingStars));
                     return priceMatch && numberOfGuestsMatch && (ratingStars == null || (hotelDTO.getRatingStars() != null && hotelDTO.getRatingStars().equals(ratingStars)));
                 })
                 .map(hotelDTO -> {
@@ -425,14 +455,45 @@ public class HotelDataService {
                             .toList();
 
                     response.setRooms(matchingRooms);
-                    response.setSimilarityScore(null);
-                    response.setPlaces(null);
+//                    response.setSimilarityScore(null);
+//                    response.setPlaces(null);
                     return response;
                 })
                 .collect(Collectors.toList());
 
         return new PageImpl<>(hotelResponses, hotelPage.getPageable(), hotelPage.getTotalElements());
     }
+
+    private String normalizeString(String input) {
+        logger.info("Input to normalize: {}", input);
+        if (input == null || input.trim().isEmpty()) {
+            logger.info("Returning empty string for input: {}", input);
+            return "";
+        }
+        String result = Normalizer.normalize(input, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .trim()
+                .toLowerCase();
+        logger.info("Normalized result: {}", result);
+        return result;
+    }
+
+    //Chuẩn hóa chuỗi để so sánh không phân biệt hoa/thường, dấu, hay định dạng Unicode
+    // giúp lọc facilities chính xác hơn.
+//    private String normalizeString(String input) {
+//        logger.info("Input to normalize: {}", input);
+//        if (input == null || input.trim().isEmpty()) {
+//            logger.info("Returning empty string for input: {}", input);
+//            return "";
+//        }
+//        String result = Normalizer.normalize(input, Normalizer.Form.NFC)
+//                .replaceAll("\\p{M}", "")
+//                .trim()
+//                .toLowerCase();
+//        logger.info("Normalized result: {}", result);
+//        return result;
+//    }
+
 
 //    @Transactional(readOnly = true)
 //    public Page<HotelSearchResponse> filterHotels(
@@ -547,22 +608,6 @@ public class HotelDataService {
 //
 //        return new PageImpl<>(pagedHotels, PageRequest.of(page - 1, size), filteredHotels.size());
 //    }
-
-    //Chuẩn hóa chuỗi để so sánh không phân biệt hoa/thường, dấu, hay định dạng Unicode
-    // giúp lọc facilities chính xác hơn.
-    private String normalizeString(String input) {
-        logger.info("Input to normalize: {}", input);
-        if (input == null || input.trim().isEmpty()) {
-            logger.info("Returning empty string for input: {}", input);
-            return "";
-        }
-        String result = Normalizer.normalize(input, Normalizer.Form.NFC)
-                .replaceAll("\\p{M}", "")
-                .trim()
-                .toLowerCase();
-        logger.info("Normalized result: {}", result);
-        return result;
-    }
 
     // Ánh xạ thủ công hoặc dùng MapStruct
     private HotelDTO mapToHotelDTO(Hotel hotel) {
