@@ -192,7 +192,7 @@ public class HotelDataController {
         }
     }
 
-    @PostMapping("/filter-by-district")
+    @GetMapping("/filter-by-district")
     public ResponseEntity<Map<String, Object>> getPlacesByDistrict(
             @RequestParam String district,
             @RequestParam(defaultValue = "1") int page,
