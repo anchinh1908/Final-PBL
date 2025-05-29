@@ -9,6 +9,7 @@ import com.example.AI.Hotel.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,54 +32,68 @@ public class TripService {
     }
 
     @Transactional
-    public PlaceTrip addPlaceTrip(Integer userId, Integer placeId) {
-        // Kiểm tra user tồn tại và không bị vô hiệu hóa
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+    public PlaceTrip addPlaceTrip(Integer placeId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
         if (user.isDeleted()) {
-            logger.warn("User {} attempted to add place but account is disabled", userId);
-            throw new SecurityException("Account is disabled");
+            logger.warn("User {} attempted to add hotel but account is disabled", user.getId());
+            throw new SecurityException("Tài khoản đã bị vô hiệu hóa");
         }
 
-        // Tạo bản ghi PlaceTrip
         PlaceTrip placeTrip = new PlaceTrip();
-        placeTrip.setUserId(userId);
+        logger.info("UserID: {}", user.getId());
+        placeTrip.setUserId(user.getId());
         placeTrip.setPlaceId(placeId);
 
         PlaceTrip savedPlaceTrip = placeTripRepository.save(placeTrip);
-        logger.info("User {} added place {} to trip", userId, placeId);
+        logger.info("User {} added hotel {} to trip", user.getId(), placeId);
         return savedPlaceTrip;
     }
 
-    @Transactional
-    public void deletePlaceTrip(Integer userId, Integer placeTripId) {
-        // Tìm bản ghi và kiểm tra quyền
-        PlaceTrip placeTrip = placeTripRepository.findByIdAndUserId(placeTripId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("PlaceTrip not found or you do not have permission to delete"));
 
-        placeTripRepository.delete(placeTrip);
-        logger.info("User {} deleted place trip with ID {}", userId, placeTripId);
-    }
-
+//    @Transactional
+//    public HotelTrip addHotelTrip(Integer userId, Integer hotelId) {
+//        // Kiểm tra user tồn tại và không bị vô hiệu hóa
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+//        logger.info("userID "+ userId);
+//
+//        if (user.isDeleted()) {
+//            logger.warn("User {} attempted to add hotel but account is disabled", userId);
+//            throw new SecurityException("Account is disabled");
+//        }
+//
+//        // Tạo bản ghi HotelTrip
+//        HotelTrip hotelTrip = new HotelTrip();
+//        logger.info( " userid" + userId);
+//        hotelTrip.setUserId(userId);
+//        logger.info( " userid" + userId);
+//        hotelTrip.setHotelId(hotelId);
+//
+//        HotelTrip savedHotelTrip = hotelTripRepository.save(hotelTrip);
+//        logger.info("User {} added hotel {} to trip", userId, hotelId);
+//        return savedHotelTrip;
+//    }
     @Transactional
-    public HotelTrip addHotelTrip(Integer userId, Integer hotelId) {
-        // Kiểm tra user tồn tại và không bị vô hiệu hóa
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+    public HotelTrip addHotelTrip(Integer hotelId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
         if (user.isDeleted()) {
-            logger.warn("User {} attempted to add hotel but account is disabled", userId);
-            throw new SecurityException("Account is disabled");
+            logger.warn("User {} attempted to add hotel but account is disabled", user.getId());
+            throw new SecurityException("Tài khoản đã bị vô hiệu hóa");
         }
 
-        // Tạo bản ghi HotelTrip
         HotelTrip hotelTrip = new HotelTrip();
-        hotelTrip.setUserId(userId);
+        logger.info("UserID: {}", user.getId());
+        hotelTrip.setUserId(user.getId());
         hotelTrip.setHotelId(hotelId);
 
         HotelTrip savedHotelTrip = hotelTripRepository.save(hotelTrip);
-        logger.info("User {} added hotel {} to trip", userId, hotelId);
+        logger.info("User {} added hotel {} to trip", user.getId(), hotelId);
         return savedHotelTrip;
     }
 
@@ -87,8 +102,18 @@ public class TripService {
         // Tìm bản ghi và kiểm tra quyền
         HotelTrip hotelTrip = hotelTripRepository.findByIdAndUserId(hotelTripId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("HotelTrip not found or you do not have permission to delete"));
-
+        logger.info("User {} deleted hotel {} from trip", userId, hotelTripId);
         hotelTripRepository.delete(hotelTrip);
         logger.info("User {} deleted hotel trip with ID {}", userId, hotelTripId);
+    }
+    @Transactional
+    public void deletePlaceTrip(Integer userId, Integer placeTripId) {
+        // Tìm bản ghi và kiểm tra quyền
+        PlaceTrip placeTrip = placeTripRepository.findByIdAndUserId(placeTripId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("PlaceTrip not found or you do not have permission to delete"));
+
+        logger.info("User {} deleted place trip with ID {}", userId, placeTripId);
+        placeTripRepository.delete(placeTrip);
+        logger.info("User {} deleted place trip with ID {}", userId, placeTripId);
     }
 }

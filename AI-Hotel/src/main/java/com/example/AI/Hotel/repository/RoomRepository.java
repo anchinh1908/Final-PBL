@@ -44,7 +44,7 @@ public interface RoomRepository extends JpaRepository<RoomType, Integer> {
             "WHERE rt.hotel.id IN :hotelIds " +
             "AND (:minPrice IS NULL OR rt.price >= :minPrice) " +
             "AND (:maxPrice IS NULL OR rt.price <= :maxPrice) " +
-            "AND (:numberOfGuests IS NULL OR rt.numberOfGuests >= :numberOfGuests)")
+            "AND (:numberOfGuests IS NULL OR rt.numberOfGuests = :numberOfGuests)")
     List<RoomType> findRoomsByHotelIdsAndPriceAndGuests(
             @Param("hotelIds") List<Integer> hotelIds,
             @Param("minPrice") Integer minPrice,

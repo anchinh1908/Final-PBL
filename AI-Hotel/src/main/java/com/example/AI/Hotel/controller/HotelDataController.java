@@ -7,6 +7,8 @@ import com.example.AI.Hotel.repository.UserRepository;
 import com.example.AI.Hotel.service.HotelDataService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -151,14 +153,13 @@ public class HotelDataController {
             @RequestParam(required = false) Integer numberOfGuests,
             @RequestParam(value = "facilities", required = false) String facilitiesParam,
             @RequestParam(defaultValue = "true") boolean matchAll,
-            @RequestParam(value = "minPrice", defaultValue = "10000",required = false) int minPrice,
-            @RequestParam(value = "maxPrice", defaultValue = "10000000",required = false) int maxPrice,
+            @RequestParam(value = "minPrice", defaultValue = "0",required = false) int minPrice,
+            @RequestParam(value = "maxPrice", defaultValue = "100000000",required = false) int maxPrice,
             @RequestParam(required = false) Integer ratingStars, Pageable pageable) {
         try {
-            // Log giá trị facilitiesParam gốc
-            log.info("Received facilitiesParam: {}", facilitiesParam);
 
             // Xử lý facilitiesParam: loại bỏ dấu [] nếu có, và tách thành List<String>
+            // Tách chuỗi thành danh sách, loại bỏ []
             List<String> filterFacilities = List.of();
             if (facilitiesParam != null && !facilitiesParam.trim().isEmpty()) {
                 // Loại bỏ dấu [] nếu người dùng truyền dạng [2 nhà hàng]
@@ -172,7 +173,7 @@ public class HotelDataController {
             // Log giá trị filterFacilities sau khi xử lý
             log.info("Parsed filterFacilities: {}", filterFacilities);
 
-            Page<HotelSearchResponse> filteredPage = hotelDataService.filterHotels(
+            List<HotelSearchResponse> filteredList = hotelDataService.filterHotels(
                     page,
                     size,
                     filterFacilities,
@@ -182,13 +183,32 @@ public class HotelDataController {
                     numberOfGuests,
                     ratingStars
             );
-            log.info("Page size: {}", pageable.getPageSize());
 
-            return buildPagedResponse(filteredPage, "Không tìm thấy khách sạn với các tiện ích, giá phòng và số lượng khách, số sao được yêu cầu");
+            // Tính tổng số phần tử
+            long totalElements = filteredList.size();
 
+            // Tính số trang tổng cộng
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+
+            // Lấy danh sách cho trang hiện tại (phân trang thủ công)
+            int fromIndex = (page - 1) * size;
+            int toIndex = Math.min(fromIndex + size, filteredList.size());
+            List<HotelSearchResponse> pageContent = (fromIndex < toIndex) ? filteredList.subList(fromIndex, toIndex) : List.of();
+
+            // Tạo Page từ danh sách con
+            Page<HotelSearchResponse> hotelPage = new PageImpl<>(pageContent, PageRequest.of(page - 1, size), totalElements);
+
+            // Chuẩn bị response
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", hotelPage.getContent());
+            response.put("currentPage", hotelPage.getNumber() + 1); // Chuyển về one-based index
+            response.put("totalItems", hotelPage.getTotalElements());
+            response.put("totalPages", hotelPage.getTotalPages());
+            response.put("message", "Lấy danh sách khách sạn thành công");
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            log.error("Error fetching facilities by hotel: page={}, size={}", page, size, e);
-            return buildErrorResponse(e);
+            throw new RuntimeException(e);
         }
     }
 

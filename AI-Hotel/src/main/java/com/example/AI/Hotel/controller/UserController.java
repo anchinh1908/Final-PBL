@@ -220,20 +220,20 @@ public class UserController {
             // Lấy userId từ token
             String email = SecurityContextHolder.getContext().getAuthentication().getName();
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nguời dùng "));
 
             // Kiểm tra trùng lặp trước khi thêm
             if (placeTripRepository.findByUserIdAndPlaceId(user.getId(), request.getPlaceId()).isPresent()) {
                 logger.warn("User {} attempted to add duplicate place {} to trip", user.getId(), request.getPlaceId());
                 response.put("status", HttpStatus.BAD_REQUEST.value());
-                response.put("message", "Place already added to trip");
+                response.put("message", "Địa điểm đã tồn tại trong lịch trình");
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            PlaceTrip placeTrip = tripService.addPlaceTrip(user.getId(), request.getPlaceId());
+            PlaceTrip placeTrip = tripService.addPlaceTrip(request.getPlaceId());
 
             response.put("status", HttpStatus.OK.value());
-            response.put("message", "Place added to trip successfully");
+            response.put("message", "Địa điểm đã được thêm vào lịch trình thành công");
             response.put("placeTrip", placeTrip);
             return ResponseEntity.ok(response);
 
@@ -259,12 +259,12 @@ public class UserController {
             // Lấy userId từ token
             String email = SecurityContextHolder.getContext().getAuthentication().getName();
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
             tripService.deletePlaceTrip(user.getId(), id);
 
             response.put("status", HttpStatus.OK.value());
-            response.put("message", "Place removed from trip successfully");
+            response.put("message", "Địa điểm đã được xóa thành công khỏi lịch trình ");
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {
@@ -280,29 +280,28 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
-
     @PostMapping("/hotel-trip/add")
     public ResponseEntity<Map<String, Object>> addHotelTrip(@Valid @RequestBody AddHotelTripRequest request) {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            // Lấy userId từ token
             String email = SecurityContextHolder.getContext().getAuthentication().getName();
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
-            // Kiểm tra trùng lặp trước khi thêm
             if (hotelTripRepository.findByUserIdAndHotelId(user.getId(), request.getHotelId()).isPresent()) {
                 logger.warn("User {} attempted to add duplicate hotel {} to trip", user.getId(), request.getHotelId());
                 response.put("status", HttpStatus.BAD_REQUEST.value());
-                response.put("message", "Khách sạn được thêm vào lịch trình thành công");
+                response.put("message", "Khách sạn đã tồn tại trong lịch trình"); // Sửa thông điệp
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
             }
 
-            HotelTrip hotelTrip = tripService.addHotelTrip(user.getId(), request.getHotelId());
+            logger.info("UserID: {}", user.getId());
+            HotelTrip hotelTrip = tripService.addHotelTrip(request.getHotelId()); // Loại bỏ userId
+            logger.info("UserID: {}", user.getId());
 
             response.put("status", HttpStatus.OK.value());
-            response.put("message", " Khách sạn được thêm vào lịch trình thành công ");
+            response.put("message", "Khách sạn được thêm vào lịch trình thành công");
             response.put("hotelTrip", hotelTrip);
             return ResponseEntity.ok(response);
 
@@ -320,6 +319,47 @@ public class UserController {
         }
     }
 
+//    @PostMapping("/hotel-trip/add")
+//    public ResponseEntity<Map<String, Object>> addHotelTrip(@Valid @RequestBody AddHotelTripRequest request) {
+//        Map<String, Object> response = new HashMap<>();
+//
+//        try {
+//            // Lấy userId từ token
+//            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+//            User user = userRepository.findByEmail(email)
+//                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+//
+//            // Kiểm tra trùng lặp trước khi thêm
+//            if (hotelTripRepository.findByUserIdAndHotelId(user.getId(), request.getHotelId()).isPresent()) {
+//                logger.warn("User {} attempted to add duplicate hotel {} to trip", user.getId(), request.getHotelId());
+//                response.put("status", HttpStatus.BAD_REQUEST.value());
+//                response.put("message", "Khách sạn được thêm vào lịch trình thành công");
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+//            }
+//
+//            logger.info("UserID" + user.getId());
+//            HotelTrip hotelTrip = tripService.addHotelTrip(user.getId(), request.getHotelId());
+//            logger.info("UserID" + user.getId());
+//
+//            response.put("status", HttpStatus.OK.value());
+//            response.put("message", " Khách sạn được thêm vào lịch trình thành công ");
+//            response.put("hotelTrip", hotelTrip);
+//            return ResponseEntity.ok(response);
+//
+//        } catch (IllegalArgumentException e) {
+//            logger.warn("Failed to add hotel to trip: {}", e.getMessage());
+//            response.put("status", HttpStatus.BAD_REQUEST.value());
+//            response.put("message", e.getMessage());
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+//
+//        } catch (Exception e) {
+//            logger.error("Error adding hotel to trip: {}", e.getMessage());
+//            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+//            response.put("message", "Server error: " + e.getMessage());
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+//        }
+//    }
+
     @DeleteMapping("/hotel-trip/delete/{id}")
     public ResponseEntity<Map<String, Object>> deleteHotelTrip(@PathVariable Integer id) {
         Map<String, Object> response = new HashMap<>();
@@ -328,12 +368,13 @@ public class UserController {
             // Lấy userId từ token
             String email = SecurityContextHolder.getContext().getAuthentication().getName();
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
+            logger.info("Id User" + user.getId());
+            logger.info("id hotel" + id);
             tripService.deleteHotelTrip(user.getId(), id);
-
             response.put("status", HttpStatus.OK.value());
-            response.put("message", "Hotel removed from trip successfully");
+            response.put("message", "Khách sạn đã được xóa thành công");
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {

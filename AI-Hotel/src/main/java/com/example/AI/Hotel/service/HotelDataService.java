@@ -379,10 +379,19 @@ public class HotelDataService {
         }
     }
     @Transactional(readOnly = true)
-    public Page<HotelSearchResponse> filterHotels(
+    public List<HotelSearchResponse> filterHotels(
             int page, int size, List<String> filterFacilities, boolean matchAll,
             int minPrice, int maxPrice, Integer numberOfGuests, Integer ratingStars) {
-        Pageable pageable = PageRequest.of(page - 1, size);
+//        Pageable pageable = PageRequest.of(page - 1, size);
+        logger.info("filterFacilities " + filterFacilities);
+        logger.info("matchAll " + matchAll);
+        logger.info("minPrice " + minPrice);
+        logger.info("maxPrice " + maxPrice);
+        logger.info("numberOfGuests " + numberOfGuests);
+        logger.info("ratingStars" + ratingStars);
+        logger.info("page" + page);
+        logger.info("size" + size);
+
 
         // Chuẩn hóa danh sách filterFacilities
         List<String> normalizedFilterFacilities = (filterFacilities == null || filterFacilities.isEmpty())
@@ -391,6 +400,7 @@ public class HotelDataService {
                 .map(this::normalizeString)
                 .filter(s -> !s.isEmpty())
                 .toList();
+//        logger.info("facilitiesParam received: '{}'", filterFacilities);
         logger.info("Normalized filter facilities: {}", normalizedFilterFacilities);
 
         // Chuyển normalizedFilterFacilities thành chuỗi, phân tách bằng dấu phẩy
@@ -398,18 +408,18 @@ public class HotelDataService {
         logger.info("Normalized facilities string: {}", normalizedFacilitiesStr);
 
         // Lấy danh sách khách sạn từ database với phân trang, bao gồm lọc facilities
-        Page<Hotel> hotelPage = hotelRepository.findByRatingStarsAndFacilities(
+        List<Hotel> hotelList = hotelRepository.findByRatingStarsAndFacilities(
                 ratingStars,
                 filterFacilities,
                 normalizedFacilitiesStr, // Truyền chuỗi thay vì List<String>
                 (long) normalizedFilterFacilities.size(),
-                matchAll,
-                pageable);
+                matchAll);
+//                pageable);
 
         // Lấy danh sách hotelId trong trang hiện tại
-        List<Integer> hotelIds = hotelPage.getContent().stream()
+        List<Integer> hotelIds = hotelList.stream()
                 .map(Hotel::getId)
-                .collect(Collectors.toList());
+                .toList();
 
         // Lấy tất cả phòng cho các khách sạn trong trang hiện tại bằng một truy vấn duy nhất
         List<RoomType> allRoomsForPage = hotelIds.isEmpty()
@@ -421,15 +431,16 @@ public class HotelDataService {
         Map<Integer, List<RoomType>> roomsByHotelId = allRoomsForPage.stream()
                 .collect(Collectors.groupingBy(room -> room.getHotel().getId()));
 
-        List<HotelSearchResponse> hotelResponses = hotelPage.getContent().stream()
+//        List<HotelSearchResponse> hotelResponses = hotelPage.getContent().stream()
+        List<HotelSearchResponse> hotelResponses = hotelList.stream()
                 .map(this::mapToHotelDTO)
                 .filter(hotelDTO -> {
                     Integer hotelId = hotelDTO.getId();
                     List<RoomType> hotelRooms = roomsByHotelId.getOrDefault(hotelId, List.of());
 
                     // Kiểm tra priceMatch và numberOfGuestsMatch
-                    // nếu mà khách sạn không có th
-                    boolean priceMatch = !hotelRooms.isEmpty() && hotelRooms.stream()
+                    // nếu mà khách sạn không có phòng thì vẫn filter
+                    boolean priceMatch = hotelRooms.stream() // neu khách sạn không có phòng
                             .filter(room -> room.getPrice() != null)
                             .anyMatch(room -> room.getPrice() >= minPrice && room.getPrice() <= maxPrice);
 
@@ -455,15 +466,17 @@ public class HotelDataService {
                             .toList();
 
                     response.setRooms(matchingRooms);
-//                    response.setSimilarityScore(null);
-//                    response.setPlaces(null);
                     return response;
                 })
-                .collect(Collectors.toList());
+                .toList();
 
-        return new PageImpl<>(hotelResponses, hotelPage.getPageable(), hotelPage.getTotalElements());
+//        return new PageImpl<>(hotelResponses, hotelPage.getPageable(), hotelPage.getTotalElements());
+        return hotelResponses;
+
     }
 
+    //Chuẩn hóa chuỗi để so sánh không phân biệt hoa/thường, dấu, hay định dạng Unicode
+    // giúp lọc facilities chính xác hơn.
     private String normalizeString(String input) {
         logger.info("Input to normalize: {}", input);
         if (input == null || input.trim().isEmpty()) {
@@ -478,136 +491,6 @@ public class HotelDataService {
         return result;
     }
 
-    //Chuẩn hóa chuỗi để so sánh không phân biệt hoa/thường, dấu, hay định dạng Unicode
-    // giúp lọc facilities chính xác hơn.
-//    private String normalizeString(String input) {
-//        logger.info("Input to normalize: {}", input);
-//        if (input == null || input.trim().isEmpty()) {
-//            logger.info("Returning empty string for input: {}", input);
-//            return "";
-//        }
-//        String result = Normalizer.normalize(input, Normalizer.Form.NFC)
-//                .replaceAll("\\p{M}", "")
-//                .trim()
-//                .toLowerCase();
-//        logger.info("Normalized result: {}", result);
-//        return result;
-//    }
-
-
-//    @Transactional(readOnly = true)
-//    public Page<HotelSearchResponse> filterHotels(
-//            int page,
-//            int size,
-//            List<String> filterFacilities,
-//            boolean matchAll,
-//            int minPrice,
-//            int maxPrice,
-//            Integer numberOfGuests,
-//            Integer ratingStars) {
-//        // Bước 1: Lấy toàn bộ khách sạn từ database
-//        List<Hotel> allHotels = hotelRepository.findAll();
-//        logger.info("Total hotels fetched: {}", allHotels.size());
-//
-//        // Bước 2: Lấy toàn bộ phòng từ database
-//        List<RoomType> allRooms = roomRepository.findAll();
-//        logger.info("Total rooms fetched: {}", allRooms.size());
-//
-//        // Bước 3: Chuẩn hóa danh sách filterFacilities
-//        List<String> normalizedFilterFacilities = (filterFacilities == null || filterFacilities.isEmpty())
-//                ? List.of()
-//                : filterFacilities.stream()
-//                .map(this::normalizeString)
-//                .filter(s -> !s.isEmpty())
-//                .toList();
-//        logger.info("Normalized filter facilities: {}", normalizedFilterFacilities);
-//
-//        // Bước 4: Lọc khách sạn theo các tiêu chí
-//        List<HotelSearchResponse> filteredHotels = allHotels.stream()
-//                .map(this::mapToHotelDTO) // Ánh xạ sang HotelDTO
-//                .filter(hotelDTO -> hotelDTO.getFacilities() != null) // Loại bỏ khách sạn không có facilities
-//                .filter(hotelDTO -> {
-//                    // Lọc theo facilities
-//                    boolean facilitiesMatch = true;
-//                    if (!normalizedFilterFacilities.isEmpty()) {
-//                        List<String> normalizedHotelFacilities = hotelDTO.getFacilities().stream()
-//                                .map(this::normalizeString)
-//                                .filter(s -> !s.isEmpty())
-//                                .toList();
-//
-//                        logger.info("Normalized hotel facilities for hotel {}: {}", hotelDTO.getId(), normalizedHotelFacilities);
-//
-//                        if (matchAll) {
-//                            facilitiesMatch = normalizedFilterFacilities.stream().allMatch
-//                                    (filterFac -> normalizedHotelFacilities.contains(filterFac));
-//                        } else {
-//                            facilitiesMatch = normalizedFilterFacilities.stream().anyMatch(filterFac ->
-//                                    normalizedHotelFacilities.contains(filterFac));
-//                        }
-//                    }
-//
-//                    // Lọc theo ratingStars
-//                    boolean ratingStarsMatch = true;
-//                    if (ratingStars != null) {
-//                        ratingStarsMatch = hotelDTO.getRatingStars() != null &&
-//                                hotelDTO.getRatingStars().equals(ratingStars);
-//                    }
-//
-//                    // Lọc theo giá phòng và số lượng khách
-//                    Integer hotelId = hotelDTO.getId();
-//                    List<RoomType> hotelRooms = allRooms.stream()
-//                            .filter(room -> room.getHotel().getId() != null && room.getHotel().getId().equals(hotelId))
-//                            .toList();
-//
-//                    boolean priceMatch = hotelRooms.isEmpty() || hotelRooms.stream()
-//                            .filter(room -> room.getPrice() != null)
-//                            .anyMatch(room -> room.getPrice() >= minPrice && room.getPrice() <= maxPrice);
-//
-//                    boolean numberOfGuestsMatch = true;
-//                    if (numberOfGuests != null) {
-//                        numberOfGuestsMatch = hotelRooms.stream()
-//                                .filter(room -> room.getNumberOfGuests() != null)
-//                                .anyMatch(room -> room.getNumberOfGuests() >= numberOfGuests);
-//                    }
-//
-//                    logger.info("Facilities match for hotel {}: {}", hotelId, facilitiesMatch);
-//                    logger.info("Price match for hotel {}: {}", hotelId, priceMatch);
-//                    logger.info("NumberOfGuests match for hotel {}: {}, numberOfGuests: {}", hotelId, numberOfGuestsMatch, numberOfGuests);
-//                    logger.info("Rating star match for hotel {}: {}", hotelId, ratingStarsMatch);
-//
-//                    return facilitiesMatch && priceMatch && numberOfGuestsMatch && ratingStarsMatch;
-//                })
-//                .map(hotelDTO -> {
-//                    // Tạo HotelSearchResponse
-//                    HotelSearchResponse response = new HotelSearchResponse();
-//                    response.setHotel(hotelDTO);
-//
-//                    // Lấy danh sách phòng khớp với tiêu chí
-//                    List<RoomDTO> matchingRooms = allRooms.stream()
-//                            .filter(room -> room.getHotel().getId() != null && room.getHotel().getId().equals(hotelDTO.getId()))
-//                            .filter(room -> room.getPrice() != null)
-//                            .filter(room -> room.getPrice() >= minPrice && room.getPrice() <= maxPrice)
-//                            .filter(room -> numberOfGuests == null || (room.getNumberOfGuests() != null && room.getNumberOfGuests() >= numberOfGuests))
-//                            .map(this::mapToRoomDTO) // Ánh xạ sang RoomDTO
-//                            .toList();
-//
-//                    response.setRooms(matchingRooms);
-////                    response.setSimilarityScore(null);
-////                    response.setPlaces(null);
-//                    return response;
-//                })
-//                .collect(Collectors.toList());
-//
-//        // Bước 5: Áp dụng phân trang
-//        int start = (page - 1) * size;
-//        int end = Math.min(start + size, filteredHotels.size());
-//        List<HotelSearchResponse> pagedHotels = start < filteredHotels.size()
-//                ? filteredHotels.subList(start, end)
-//                : new ArrayList<>();
-//        logger.info("Total filtered hotels: {}", filteredHotels.size());
-//
-//        return new PageImpl<>(pagedHotels, PageRequest.of(page - 1, size), filteredHotels.size());
-//    }
 
     // Ánh xạ thủ công hoặc dùng MapStruct
     private HotelDTO mapToHotelDTO(Hotel hotel) {

@@ -21,6 +21,7 @@ public interface HotelRepository extends JpaRepository<Hotel, Integer> {
     Page<Hotel> findByNameContainingIgnoreCase(Pageable pageable, String name);
 
     // Tìm khách sạn theo danh sách ID và district
+    // unaccent sử dụng một bảng quy tắc (default rules) để ánh xạ ký tự có dấu sang không dấu.
     @Query("SELECT h FROM Hotel h WHERE h.id IN :ids AND h.district = :district")
     List<Hotel> findAllByIdAndDistrict(@Param("ids") Iterable<Integer> ids, @Param("district") String district);
 
@@ -60,13 +61,19 @@ public interface HotelRepository extends JpaRepository<Hotel, Integer> {
                     "  WHERE :normalizedFacilitiesStr IS NOT NULL AND :normalizedFacilitiesStr != '') " +
                     ")))",
             nativeQuery = true)
-    Page<Hotel> findByRatingStarsAndFacilities(
+//    Page<Hotel> findByRatingStarsAndFacilities(
+//            @Param("ratingStars") Integer ratingStars,
+//            @Param("facilities") List<String> facilities,
+//            @Param("normalizedFacilitiesStr") String normalizedFacilitiesStr,
+//            @Param("facilitiesSize") Long facilitiesSize,
+//            @Param("matchAll") boolean matchAll,
+//            Pageable pageable);
+    List<Hotel>findByRatingStarsAndFacilities(
             @Param("ratingStars") Integer ratingStars,
             @Param("facilities") List<String> facilities,
             @Param("normalizedFacilitiesStr") String normalizedFacilitiesStr,
             @Param("facilitiesSize") Long facilitiesSize,
-            @Param("matchAll") boolean matchAll,
-            Pageable pageable);
+            @Param("matchAll") boolean matchAll);
 
     //    @Query("SELECT h FROM Hotel h " +
 //            "WHERE (:ratingStars IS NULL OR h.ratingStars = :ratingStars)")
