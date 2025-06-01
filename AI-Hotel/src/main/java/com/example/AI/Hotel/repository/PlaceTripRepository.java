@@ -17,4 +17,7 @@ public interface PlaceTripRepository extends JpaRepository<PlaceTrip, Integer>{
 
     @Query("SELECT pt FROM PlaceTrip pt WHERE pt.userId = :userId AND pt.placeId = :placeId")
     Optional<PlaceTrip> findByUserIdAndPlaceId(@Param("userId") Integer userId, @Param("placeId") Integer placeId);
+
+    @Query("SELECT pt FROM PlaceTrip pt WHERE pt.userId = :userId AND pt.placeId = :placeId")
+    List<PlaceTrip> findAllByUserIdAndPlaceId(@Param("userId") Integer userId, @Param("placeId") Integer placeId);
 }

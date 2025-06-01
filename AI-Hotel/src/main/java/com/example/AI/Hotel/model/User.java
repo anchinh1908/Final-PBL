@@ -45,6 +45,12 @@ public class User {
     @Column(unique = true)
     private String googleId;
 
+    @Column(name = "provider")
+    private String provider; // GOOGLE, FACEBOOK
+
+    @Column(name = "provider_id")
+    private String providerId; // googleId hoặc facebookId
+
     // Trường mới để lưu OTP
     @Column(name = "reset_token", length = 32)
     private String resetToken;

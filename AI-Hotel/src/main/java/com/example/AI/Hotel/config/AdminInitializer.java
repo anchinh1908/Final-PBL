@@ -24,6 +24,8 @@ public class AdminInitializer implements CommandLineRunner {
             admin.setPassword(passwordEncoder.encode("admin1234"));
             admin.setFullName("Admin");
             admin.setRole(User.Role.ADMIN);
+            admin.setProvider("LOCAL");
+//            admin.setDeleted(false);   // Đảm bảo tài khoản không bị đánh dấu xóa
             userRepository.save(admin);
             System.out.println("Default admin account created: admin@example.com");
         }

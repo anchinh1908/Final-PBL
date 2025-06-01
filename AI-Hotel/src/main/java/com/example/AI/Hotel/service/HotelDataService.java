@@ -440,7 +440,11 @@ public class HotelDataService {
 
                     // Kiểm tra priceMatch và numberOfGuestsMatch
                     // nếu mà khách sạn không có phòng thì vẫn filter
-                    boolean priceMatch = hotelRooms.stream() // neu khách sạn không có phòng
+//                    boolean priceMatch = hotelRooms.stream() // neu khách sạn không có phòng
+//                            .filter(room -> room.getPrice() != null)
+//                            .anyMatch(room -> room.getPrice() >= minPrice && room.getPrice() <= maxPrice);
+
+                    boolean priceMatch = (minPrice == 0 && maxPrice == 100000000) || hotelRooms.stream()
                             .filter(room -> room.getPrice() != null)
                             .anyMatch(room -> room.getPrice() >= minPrice && room.getPrice() <= maxPrice);
 

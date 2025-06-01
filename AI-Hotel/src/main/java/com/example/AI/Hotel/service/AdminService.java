@@ -76,7 +76,7 @@ public class AdminService {
         // Kiểm tra quyền admin từ authorities
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to disable a user but lacks ADMIN role", adminEmail);
@@ -104,7 +104,7 @@ public class AdminService {
         // Kiểm tra quyền admin từ authorities
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to restore a user but lacks ADMIN role", adminEmail);
@@ -132,7 +132,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to add a hotel but lacks ADMIN role", adminEmail);
@@ -270,7 +270,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to update a hotel but lacks ADMIN role", adminEmail);
@@ -365,7 +365,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to delete a hotel but lacks ADMIN role", adminEmail);
@@ -396,7 +396,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to delete hotels but lacks ADMIN role", adminEmail);
@@ -444,7 +444,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to delete hotels but lacks ADMIN role", adminEmail);
@@ -492,7 +492,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to delete hotels but lacks ADMIN role", adminEmail);
@@ -538,7 +538,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to add a room but lacks ADMIN role", adminEmail);
@@ -620,7 +620,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to update a room but lacks ADMIN role", adminEmail);
@@ -712,7 +712,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to delete a room but lacks ADMIN role", adminEmail);
@@ -743,7 +743,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to add a place but lacks ADMIN role", adminEmail);
@@ -879,7 +879,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("User {} attempted to update a place but lacks ADMIN role", adminEmail);
@@ -1018,7 +1018,7 @@ public class AdminService {
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         if (!isAdmin) {
             logger.warn("Người dùng {} cố gắng xóa Place nhưng không có vai trò ADMIN", adminEmail);

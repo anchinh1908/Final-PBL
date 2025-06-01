@@ -252,7 +252,7 @@ public class UserController {
     }
 
     @DeleteMapping("/place-trip/delete/{id}")
-    public ResponseEntity<Map<String, Object>> deletePlaceTrip(@PathVariable Integer id) { // Thay Long bằng Integer
+    public ResponseEntity<Map<String, Object>> deletePlaceTrip(@PathVariable Integer id) {
         Map<String, Object> response = new HashMap<>();
 
         try {
@@ -261,7 +261,7 @@ public class UserController {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
-            tripService.deletePlaceTrip(user.getId(), id);
+            tripService.deletePlaceTrip(id);
 
             response.put("status", HttpStatus.OK.value());
             response.put("message", "Địa điểm đã được xóa thành công khỏi lịch trình ");
@@ -370,9 +370,7 @@ public class UserController {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
-            logger.info("Id User" + user.getId());
-            logger.info("id hotel" + id);
-            tripService.deleteHotelTrip(user.getId(), id);
+            tripService.deleteHotelTrip(id);
             response.put("status", HttpStatus.OK.value());
             response.put("message", "Khách sạn đã được xóa thành công");
             return ResponseEntity.ok(response);

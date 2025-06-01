@@ -41,13 +41,15 @@ public class AdminController {
     private final ObjectMapper objectMapper;
     private final UserService userService;
     private final HotelDataService hotelDataService;
+    private final UserRepository userRepository;
 
     @Autowired
-    public AdminController(AdminService adminService, @Qualifier("objectMapper") ObjectMapper objectMapper, UserRepository userRepository, UserService userService, HotelDataService hotelDataService) {
+    public AdminController(AdminService adminService, @Qualifier("objectMapper") ObjectMapper objectMapper, UserRepository userRepository, UserService userService, HotelDataService hotelDataService, UserRepository userRepository1) {
         this.adminService = adminService;
         this.objectMapper = objectMapper;
         this.userService = userService;
         this.hotelDataService = hotelDataService;
+        this.userRepository = userRepository1;
     }
 
     @PutMapping("/users/{userId}/disable")
@@ -326,6 +328,48 @@ public class AdminController {
 //            log.error("Error fetching hotel with id: {}", id, e);
             return buildErrorResponse(e);
         }
+    }
+
+    @DeleteMapping("/delete-user/{id}")
+    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Integer id) {
+        Map<String, Object> response = new HashMap<>();
+
+        if (!userRepository.existsById(id)) {
+            response.put("message", "Người dùng không tồn tại");
+            response.put("status", HttpStatus.NOT_FOUND.value());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+
+        userRepository.deleteById(id);
+
+        response.put("message", "Người dùng đã được xóa thành công");
+        response.put("status", HttpStatus.OK.value());
+        return ResponseEntity.ok(response);
+    }
+    @DeleteMapping("/delete-users")
+    public ResponseEntity<Map<String, Object>> deleteUsers(@RequestParam("userIds") List<Integer> ids) {
+        Map<String, Object> response = new HashMap<>();
+
+        if (ids == null || ids.isEmpty()) {
+            response.put("message", "Danh sách ID không được trống");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        // Kiểm tra xem có user nào tồn tại không
+        List<User> users = userRepository.findAllById(ids);
+        if (users.isEmpty()) {
+            response.put("message", "Không tìm thấy người dùng nào hợp lệ để xóa");
+            response.put("status", HttpStatus.NOT_FOUND.value());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        }
+
+        // Xóa các user
+        userRepository.deleteAll(users);
+
+        response.put("message", "Đã xóa thành công " + users.size() + " người dùng");
+        response.put("status", HttpStatus.OK.value());
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping(value = "update-hotel/{hotelId}", consumes = "multipart/form-data")
