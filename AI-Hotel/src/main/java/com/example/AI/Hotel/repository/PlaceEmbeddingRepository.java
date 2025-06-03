@@ -13,7 +13,6 @@ public interface PlaceEmbeddingRepository extends JpaRepository<PlaceEmbedding, 
 
     long count();
 
-
     @Query("SELECT pe FROM PlaceEmbedding pe JOIN FETCH pe.place")
     List<PlaceEmbedding> findAllWithPlaceId();
 

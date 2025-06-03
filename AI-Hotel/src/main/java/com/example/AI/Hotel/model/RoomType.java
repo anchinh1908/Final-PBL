@@ -34,4 +34,12 @@ public class RoomType {
 
     @Column(name = "taxes_and_fees_under_price")
     private Boolean taxesAndFeesUnderPrice;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(50) DEFAULT 'AVAILABLE'")
+    private Status status;
+
+    public enum Status {
+        AVAILABLE, BOOKED, CHECKED_IN, CHECKED_OUT
+    }
 }

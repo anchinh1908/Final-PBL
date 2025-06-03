@@ -85,7 +85,7 @@ public class HotelSearchService {
                     : null;
             if (email != null && !email.trim().isEmpty() && !email.equals("anonymousUser")) {
                 User user = userRepository.findByEmail(email)
-                        .orElseThrow(() -> new IllegalStateException("User not found with email: " + email));
+                        .orElseThrow(() -> new IllegalStateException("Không tìm thấy người dùng với email: " + email));
                 saveSearchHistory(request.getQuery(), user);
             } else {
                 logger.warn("Skipping search history save: No authenticated user or anonymous user detected");

@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Map;
 
 @Service
 public class MailService {
@@ -31,7 +32,7 @@ public class MailService {
 
     public String sendOtp(String toEmail) {
         if (!StringUtils.hasText(toEmail) || !toEmail.contains("@")) {
-            throw new IllegalArgumentException("Invalid email address");
+            throw new IllegalArgumentException("Địa chỉ email không đúng");
         }
 
         Resend resend = new Resend(resendApiKey);
@@ -40,6 +41,7 @@ public class MailService {
 
         CreateEmailOptions params = CreateEmailOptions.builder()
                 .from("hotelProposal <hospital@unime.site>")
+//                .from("noreply@resend.dev")
                 .to(toEmail)
                 .subject("Thư gửi mã OTP xác thực từ Website")
                 .html(htmlTemplate)
@@ -51,7 +53,7 @@ public class MailService {
             return randomOtp;
         } catch (ResendException e) {
             logger.error("Failed to send OTP email to: {}", toEmail, e);
-            throw new RuntimeException("Failed to send email: " + e.getMessage(), e);
+            throw new RuntimeException("Không thể gửi được gmail " + e.getMessage(), e);
         }
     }
 
@@ -74,5 +76,65 @@ public class MailService {
         int minValue = (int) Math.pow(10, digitCount - 1);
         int maxValue = (int) Math.pow(10, digitCount) - 1;
         return String.valueOf(minValue + random.nextInt(maxValue - minValue + 1));
+    }
+
+    // Gửi email thông báo đặt phòng thành công cho user
+    public void sendBookingConfirmation(String toEmail, Map<String, String> placeholders) {
+        String htmlTemplate = loadAndReplaceTemplate("booking-confirmation.html", placeholders);
+
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from("hotelProposal <hospital@unime.site>")
+                .to(toEmail)
+                .subject("Xác nhận đặt phòng thành công")
+                .html(htmlTemplate)
+                .build();
+
+        try {
+            Resend resend = new Resend(resendApiKey);
+            CreateEmailResponse response = resend.emails().send(params);
+            logger.info("Booking confirmation email sent successfully to: {}, Response: {}", toEmail, response);
+        } catch (ResendException e) {
+            logger.error("Failed to send booking confirmation email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send email: " + e.getMessage(), e);
+        }
+    }
+
+    // Gửi email thông báo cho khách sạn
+    public void sendHotelNotification(String toEmail, Map<String, String> placeholders) {
+        String htmlTemplate = loadAndReplaceTemplate("hotel-notification.html", placeholders);
+
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from("hotelProposal <hospital@unime.site>")
+                .to(toEmail)
+                .subject("Thông báo đặt phòng mới")
+                .html(htmlTemplate)
+                .build();
+
+        try {
+            Resend resend = new Resend(resendApiKey);
+            CreateEmailResponse response = resend.emails().send(params);
+            logger.info("Hotel notification email sent successfully to: {}, Response: {}", toEmail, response);
+        } catch (ResendException e) {
+            logger.error("Failed to send hotel notification email to: {}", toEmail, e);
+            throw new RuntimeException("Failed to send email: " + e.getMessage(), e);
+        }
+    }
+
+    // Hàm tiện ích để load và thay thế placeholder trong template
+    private String loadAndReplaceTemplate(String templateName, Map<String, String> placeholders) {
+        try {
+            Resource resource = resourceLoader.getResource("classpath:static/" + templateName);
+            String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            if (htmlTemplate.isEmpty()) {
+                throw new RuntimeException("Email template is empty");
+            }
+            for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+                htmlTemplate = htmlTemplate.replace("{{" + entry.getKey() + "}}", entry.getValue());
+            }
+            return htmlTemplate;
+        } catch (IOException e) {
+            logger.error("Failed to read email template: {}", templateName, e);
+            throw new RuntimeException("Failed to read email template: " + templateName, e);
+        }
     }
 }

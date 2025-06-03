@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -96,23 +98,11 @@ public interface RoomRepository extends JpaRepository<RoomType, Integer> {
             double similarityThreshold,
             int limit
     );
-    @Query(value = """
-        SELECT 
-            rt.id, 
-            rt.name, 
-            rt.price,
-            (1 - (re.embedding <=> CAST(:queryEmbedding AS vector))) AS similarity
-        FROM room_types rt
-        JOIN room_embeddings re ON rt.id = re.room_id
-        WHERE rt.hotel_id IN :hotelIds
-        AND (1 - (re.embedding <=> CAST(:queryEmbedding AS vector))) >= :threshold
-        ORDER BY similarity DESC
-        LIMIT :limit
-    """, nativeQuery = true)
-    List<Object[]> findTopSimilarRoomsForHotels(
-            @Param("queryEmbedding") String queryEmbedding,
-            @Param("hotelIds") List<Integer> hotelIds,
-            @Param("threshold") double threshold,
-            @Param("limit") int limit
-    );
+    // Tìm tất cả phòng còn trống của một khách sạn
+    @Query("SELECT rt FROM RoomType rt WHERE rt.hotel.id = :hotelId AND rt.status = 'AVAILABLE'")
+    List<RoomType> findAvailableRoomsByHotelId(@Param("hotelId") Integer hotelId);
+
+    // Tìm một phòng cụ thể còn trống dựa trên roomID
+    @Query("SELECT rt FROM RoomType rt WHERE rt.id = :roomId AND rt.status = 'AVAILABLE'")
+    Optional<RoomType> findAvailableRoomById(@Param("roomId") Integer roomId);
 }

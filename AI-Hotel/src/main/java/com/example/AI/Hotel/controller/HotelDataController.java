@@ -85,6 +85,28 @@ public class HotelDataController {
             return buildErrorResponse(e);
         }
     }
+
+    @GetMapping("/top-5-places-by-ratings")
+    public ResponseEntity<Map<String, Object>> getTop5PlacesByReviews() {
+        try {
+            List<PlaceDTO> places = hotelDataService.getTop5PlacesByRatings();
+            if (places.isEmpty()) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Không tìm thấy địa điểm với điểm xếp haạng ");
+                response.put("status", HttpStatus.NOT_FOUND.value());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Top 5 địa điểm đã được tìm thấy theo yêu cầu");
+            response.put("status", HttpStatus.OK.value());
+            response.put("data", places);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Không tim thấy địa điểm ", e);
+            return buildErrorResponse(e);
+        }
+    }
+
     @GetMapping("/rooms")
     public ResponseEntity<Map<String, Object>> getAllRooms(
             @RequestParam(defaultValue = "1") int page,

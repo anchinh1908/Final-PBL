@@ -99,7 +99,7 @@ public class AuthController {
 
         Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
         if (userOptional.isEmpty()) {
-            response.put("message", "Email not found");
+            response.put("message", "Không tìm thấy email");
             response.put("status", HttpStatus.NOT_FOUND.value());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
@@ -112,7 +112,7 @@ public class AuthController {
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(10)); // OTP hết hạn sau 10 phút
         userRepository.save(user);
 
-        response.put("message", "OTP has been sent to your email");
+        response.put("message", "OTP đã được tới mail của bạn");
         response.put("status", HttpStatus.OK.value());
         return ResponseEntity.ok(response);
     }

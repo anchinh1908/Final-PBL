@@ -268,6 +268,33 @@ public class HotelDataService {
             throw new RuntimeException("Error fetching top 5 hotels by reviews: " + e.getMessage(), e);
         }
     }
+    @Transactional(readOnly = true)
+    public List<PlaceDTO> getTop5PlacesByRatings() {
+        logger.info("Fetching top 5 places by ratings");
+        try {
+            // Lấy tất cả khách sạn từ repository
+            List<Place> allPlaces = placeRepository.findAll();
+            if (allPlaces.isEmpty()) {
+                logger.warn("No Places found in the database");
+                return Collections.emptyList();
+            }
+
+            // Sắp xếp places theo rating giảm dần và lấy top 5
+            List<PlaceDTO> topPlaces = allPlaces.stream()
+                    .filter(place -> place.getRating() != null) // Lọc các place có rating
+                    .sorted(Comparator.comparing(Place::getRating, Comparator.nullsLast(Comparator.reverseOrder())))
+                    .limit(5) // Lấy top 5
+                    .map(this::mapToPlaceDTO) // Ánh xạ sang PlaceDTO
+                    .toList();
+
+            logger.info("Successfully fetched top 5 places by ratings, count: {}", topPlaces.size());
+            return topPlaces;
+
+        } catch (Exception e) {
+            logger.error("Error fetching top 5 places by ratings", e);
+            throw new RuntimeException("Error fetching top 5 places by ratings: " + e.getMessage(), e);
+        }
+    }
 
     private String extractDistrictFromAddress(String address) {
         if (address == null || address.trim().isEmpty()) {

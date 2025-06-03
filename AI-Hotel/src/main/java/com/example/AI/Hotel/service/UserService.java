@@ -39,7 +39,7 @@ public class UserService {
 
         // Kiểm tra và lọc user không phải ADMIN
         if (user.getRole().equals(User.Role.ADMIN)) {
-            throw new RuntimeException("Người dùng không được tìm thấy với email: " + email); // Hoặc thông báo tùy chỉnh
+            throw new RuntimeException("Người dùng không được tìm thấy với email: " + email);
         }
 
         UserDTO userDTO = new UserDTO();
