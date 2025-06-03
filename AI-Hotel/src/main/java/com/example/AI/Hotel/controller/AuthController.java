@@ -66,32 +66,116 @@ public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
-    // trả về key-value: message
-    @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
+    @PostMapping("/register/send-otp")
+    public ResponseEntity<Map<String, Object>> sendOtpForRegister(@RequestBody Map<String, String> request) {
         Map<String, Object> response = new HashMap<>();
+        String email = request.get("email");
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            response.put("message", "Email đã tồn tại ");
+        // Kiểm tra email đã tồn tại
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        if (existingUser.isPresent()) {
+            response.put("message", "Email đã tồn tại");
             response.put("status", HttpStatus.BAD_REQUEST.value());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
 
-        User user = new User();
-        user.setEmail(request.getEmail());
+        try {
+            // Tạo user tạm thời để lưu OTP
+            User tempUser = new User();
+            tempUser.setEmail(email);
+            tempUser.setProvider("TEMP"); // Đánh dấu là user tạm thời, sẽ cập nhật sau
+            tempUser.setRole(User.Role.USER);
+
+            // Gửi OTP và lưu vào resetToken
+            String otp = mailService.sendOtp(email);
+            tempUser.setResetToken(otp);
+            tempUser.setResetTokenExpiry(LocalDateTime.now().plusMinutes(10)); // OTP hết hạn sau 10 phút
+            userRepository.save(tempUser);
+
+            response.put("message", "OTP đã được gửi đến email của bạn");
+            response.put("status", HttpStatus.OK.value());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Không thể gửi OTP: {}", e.getMessage());
+            response.put("message", "Không thể gửi OTP: " + e.getMessage());
+            response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request, @RequestParam String otp) {
+        Map<String, Object> response = new HashMap<>();
+
+        // Tìm user tạm thời theo email
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Email không tồn tại trong hệ thống"));
+
+        // Kiểm tra nếu user đã được đăng ký chính thức (provider = "LOCAL")
+        if ("LOCAL".equals(user.getProvider())) {
+            response.put("message", "Email đã tồn tại và đã được đăng ký");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        // Kiểm tra OTP và thời gian hết hạn
+        if (user.getResetToken() == null || !user.getResetToken().equals(otp)) {
+            response.put("message", "Mã OTP không hợp lệ");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            response.put("message", "Mã OTP đã hết hạn");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        // Xóa resetToken và resetTokenExpiry sau khi xác thực thành công
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+
+        // Cập nhật thông tin user
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setFullName(request.getFullName());
         user.setPhoneNumber(request.getPhoneNumber());
         user.setDateOfBirth(request.getDateOfBirth());
         user.setAddress(request.getAddress());
         user.setRole(User.Role.USER);
-        user.setProvider("LOCAL"); // Gán provider là "LOCAL" cho tài khoản đăng ký thông thường
+        user.setProvider("LOCAL"); // Cập nhật provider thành LOCAL sau khi đăng ký thành công
         userRepository.save(user);
 
-        response.put("message", "Người dùng đăng kí tài khoản thành công " );
+        response.put("message", "Người dùng đăng ký tài khoản thành công");
         response.put("status", HttpStatus.OK.value());
         return ResponseEntity.ok(response);
     }
+
+    // trả về key-value: message
+//    @PostMapping("/register")
+//    public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody RegisterRequest request) {
+//        Map<String, Object> response = new HashMap<>();
+//
+//        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+//            response.put("message", "Email đã tồn tại ");
+//            response.put("status", HttpStatus.BAD_REQUEST.value());
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+//        }
+//
+//        User user = new User();
+//        user.setEmail(request.getEmail());
+//        user.setPassword(passwordEncoder.encode(request.getPassword()));
+//        user.setFullName(request.getFullName());
+//        user.setPhoneNumber(request.getPhoneNumber());
+//        user.setDateOfBirth(request.getDateOfBirth());
+//        user.setAddress(request.getAddress());
+//        user.setRole(User.Role.USER);
+//        user.setProvider("LOCAL"); // Gán provider là "LOCAL" cho tài khoản đăng ký thông thường
+//        userRepository.save(user);
+//
+//        response.put("message", "Người dùng đăng kí tài khoản thành công " );
+//        response.put("status", HttpStatus.OK.value());
+//        return ResponseEntity.ok(response);
+//    }
     // gửi otp
     @PostMapping("/forgot-password")
     public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
