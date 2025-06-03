@@ -29,18 +29,20 @@ public class HotelDataService {
     private final RoomRepository roomRepository;
     private final PlaceRepository placeRepository;
     private final PlaceTripRepository placeTripRepository;
+    private final UserRepository userRepository;
 
     @Autowired
     public HotelDataService(
             HotelTripRepository hotelTripRepository, HotelRepository hotelRepository,
             RoomRepository roomRepository,
             PlaceRepository placeRepository,
-            PlaceTripRepository placeTripRepository) {
+            PlaceTripRepository placeTripRepository, UserRepository userRepository) {
         this.hotelTripRepository = hotelTripRepository;
         this.hotelRepository = hotelRepository;
         this.roomRepository = roomRepository;
         this.placeRepository = placeRepository;
         this.placeTripRepository = placeTripRepository;
+        this.userRepository = userRepository;
     }
     @Transactional(readOnly = true)
     public Page<HotelSearchResponse> getAllHotels(int page, int size) {
@@ -84,16 +86,18 @@ public class HotelDataService {
             long totalHotels = hotelRepository.count();
             long totalPlaces = placeRepository.count();
             long totalRooms = roomRepository.count();
-            logger.info("Total number of hotels: {}, places: {}, rooms: {}", totalHotels, totalPlaces, totalRooms);
+            long totalUsers = userRepository.count();
+            logger.info("Total number of hotels: {}, places: {}, rooms: {}, users: {}", totalHotels, totalPlaces, totalRooms,totalUsers);
 
             Map<String, Long> totals = new HashMap<>();
             totals.put("Total Hotel", totalHotels);
             totals.put("Total Places", totalPlaces);
             totals.put("Total Room", totalRooms);
+            totals.put("Total User", totalUsers);
             return totals;
         } catch (Exception e) {
-            logger.error("Error counting total hotels: {}", e.getMessage(), e);
-            throw new RuntimeException("Error counting hotels: " + e.getMessage(), e);
+            logger.error("Error counting total number: {}", e.getMessage(), e);
+            throw new RuntimeException("Error counting number: " + e.getMessage(), e);
         }
     }
 

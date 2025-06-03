@@ -20,15 +20,16 @@ public class BookingRequest {
     @NotNull(message = "Room ID là bắt buộc")
     private Integer roomId;
 
-    @NotNull(message = "Check-in date is required")
+    @NotNull(message = "Ngày nhân phòng là bắt buộc ")
     @FutureOrPresent(message = "Ngày nhận phòng phải bắt đầu từ hôm nay ")
     @JsonFormat(pattern = "dd-MM-yyyy")
     private LocalDate checkInDate;
 
-    @NotNull(message = "Check-out date is required")
-    @Future(message = "Ngày trả phòng phải không hợp lệ")
+    @NotNull(message = "Ngày trả phòng là bắt buộc")
+    @Future(message = "Ngày trả phòng không hợp lệ")
+    @JsonFormat(pattern = "dd-MM-yyyy")
     private LocalDate checkOutDate;
 
-    @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
-    private LocalDateTime bookingTime;
+//    @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
+//    private LocalDateTime bookingTime;
 }

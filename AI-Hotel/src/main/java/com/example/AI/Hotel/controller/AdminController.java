@@ -846,7 +846,7 @@ public class AdminController {
             response.put("status", "200");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            response.put("message", "Lỗi khi đếm tổng số khách sạn: " + e.getMessage());
+            response.put("message", "Lỗi khi đếm tổng số: " + e.getMessage());
             response.put("status", "error");
             return ResponseEntity.status(500).body(response);
         }

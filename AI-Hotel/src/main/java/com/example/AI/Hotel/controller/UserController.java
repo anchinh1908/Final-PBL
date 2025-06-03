@@ -665,15 +665,8 @@ public class UserController {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
-            // Tạo một bản sao request với userId từ token
-            BookingRequest updatedRequest = new BookingRequest();
-            updatedRequest.setRoomId(request.getRoomId());
-            updatedRequest.setCheckInDate(request.getCheckInDate());
-//            updatedRequest.setCheckOutDate(request.getCheckOutDate());
-            updatedRequest.setBookingTime(request.getBookingTime() != null ? request.getBookingTime() : LocalDateTime.now());
-
-            // Gọi service với userId từ User
-            Map<String, Object> response = bookingService.bookRoom(user.getId(), updatedRequest);
+            // Gọi service với userId từ token
+            Map<String, Object> response = bookingService.bookRoom(user.getId(), request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             Map<String, Object> errorResponse = new HashMap<>();
@@ -687,6 +680,37 @@ public class UserController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+//    @PostMapping("/book")
+//    public ResponseEntity<Map<String, Object>> bookRoom(@Valid @RequestBody BookingRequest request) {
+//        try {
+//            // Lấy userId từ token
+//            String email = SecurityContextHolder.getContext().getAuthentication().getName();
+//            User user = userRepository.findByEmail(email)
+//                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+//
+//            // Tạo một bản sao request với userId từ token
+//            BookingRequest updatedRequest = new BookingRequest();
+//            updatedRequest.setRoomId(request.getRoomId());
+//            updatedRequest.setCheckInDate(request.getCheckInDate());
+////            updatedRequest.setCheckOutDate(request.getCheckOutDate());
+//            updatedRequest.setBookingTime(request.getBookingTime() != null ? request.getBookingTime() : LocalDateTime.now());
+//
+//            // Gọi service với userId từ User
+//            Map<String, Object> response = bookingService.bookRoom(user.getId(), updatedRequest);
+//            return ResponseEntity.ok(response);
+//        } catch (IllegalArgumentException e) {
+//            Map<String, Object> errorResponse = new HashMap<>();
+//            errorResponse.put("status", "400");
+//            errorResponse.put("message", e.getMessage());
+//            return ResponseEntity.badRequest().body(errorResponse);
+//        } catch (RuntimeException e) {
+//            Map<String, Object> errorResponse = new HashMap<>();
+//            errorResponse.put("status", "400");
+//            errorResponse.put("message", e.getMessage());
+//            return ResponseEntity.badRequest().body(errorResponse);
+//        }
+//    }
 
     private String extractPublicId(String url) {
         String[] parts = url.split("/");
