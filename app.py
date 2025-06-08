@@ -9,6 +9,7 @@ import cloudinary.uploader
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -17,7 +18,7 @@ cloudinary.config(
 )
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173", "https://final-pbl.onrender.com"])
+CORS(app, origins=["http://localhost:5173", "https://final-pbl.onrender.com", "http://localhost:8080", "https://final-pbl-8czd.onrender.com"])
 
 def plan_trip( days, preferences, hotels, places):
     hotel_str = "\n".join([f"- {h['name']}: {h['description']}" for h in hotels])
@@ -86,6 +87,26 @@ def upload_multiple():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route("/embed", methods=["POST"])
+def create_embedding():
+    try:
+        data = request.get_json()
+        query = data.get("query", "")
+
+        if not query:
+            return jsonify({"error": "Missing 'query' in request body"}), 400
+
+        response = client.embeddings.create(
+            model="text-embedding-3-large",
+            input=query
+        )
+
+        embedding = response.data[0].embedding
+        return jsonify({"embedding": embedding})
+
+    except Exception as e:
+        return jsonify({"error": f"Error creating embedding: {str(e)}"}), 500
     
 @app.route("/hearth", methods=["GET"])
 def hearth_check():
