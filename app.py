@@ -21,11 +21,11 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Cấu hình kết nối PostgreSQL
 db_config = {
-    "dbname": "dntrip",
-    "user": "dntrip",
-    "password": "DRuqx7mccS4KFzgmbVff3PTbTOIfG3cW",
-    "host": "dpg-d115uhidbo4c739mcaug-a.oregon-postgres.render.com",
-    "port": "5432"
+    "dbname": os.getenv("DATABASE_NAME"),
+    "user": os.getenv("DATABASE_USER"),
+    "password": os.getenv("DATABASE_PASSWORD"),
+    "host": os.getenv("DATABASE_HOST"),
+    "port": os.getenv("DATABASE_PORT")
 }
 
 cloudinary.config(
