@@ -7,9 +7,7 @@ import cloudinary
 import cloudinary.uploader
 # import cloudinary.api
 import psycopg2
-from psycopg2.extras import RealDictCursor
 import json
-import numpy as np
 import logging
 
 # Cấu hình logging
