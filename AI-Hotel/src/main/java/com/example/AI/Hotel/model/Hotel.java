@@ -21,7 +21,6 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class Hotel {
 
     @Id
@@ -79,7 +78,7 @@ public class Hotel {
 //    @JsonIgnore
     private List<HotelEmbedding> embeddings;
 
-    @Version
-    private Integer version;
+//    @Version
+//    private Integer version;
 
 }

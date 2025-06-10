@@ -18,6 +18,8 @@ public interface HotelRepository extends JpaRepository<Hotel, Integer> {
 
     List<Hotel> findAll();
 
+    void deleteByIdIn(List<Integer> ids);
+
     Page<Hotel> findByNameContainingIgnoreCase(Pageable pageable, String name);
 
     // Tìm khách sạn theo danh sách ID và district

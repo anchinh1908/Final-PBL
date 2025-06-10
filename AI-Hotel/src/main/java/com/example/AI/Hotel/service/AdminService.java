@@ -525,6 +525,8 @@ public class AdminService {
             }
         });
     }
+
+    /*
     @Transactional
     public void deleteHotels(List<Integer> hotelIds) {
         // Kiểm tra quyền admin
@@ -559,6 +561,14 @@ public class AdminService {
             throw new IllegalStateException("Không tìm thấy khách sạn với các ID: " + notFoundIds);
         }
 
+        // Lấy tất cả room liên quan
+        List<Integer> hotelIdsList = hotelsToDelete.stream().map(Hotel::getId).toList();
+        List<RoomType> roomsToDelete = roomRepository.findByHotelIdIn(hotelIdsList);
+        if (!roomsToDelete.isEmpty()) {
+            roomRepository.deleteAll(roomsToDelete);
+            roomRepository.flush();
+        }
+
         // Xóa tất cả khách sạn trong một giao dịch
         transactionTemplate.execute(status -> {
             try {
@@ -569,6 +579,67 @@ public class AdminService {
             } catch (Exception e) {
                 logger.error("Failed to delete hotels with IDs {}: {}", hotelIds, e.getMessage());
                 throw new RuntimeException("Failed to delete hotels: " + e.getMessage());
+            }
+        });
+    }
+
+     */
+    @Transactional
+    public void deleteHotels(List<Integer> hotelIds) {
+        String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new IllegalStateException("Admin not found"));
+
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            logger.warn("User {} attempted to delete hotels but lacks ADMIN role", adminEmail);
+            throw new SecurityException("Only admins can delete hotels");
+        }
+
+        if (hotelIds == null || hotelIds.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách ID khách sạn không được rỗng");
+        }
+
+        // Tải lại entity trong cùng session để đảm bảo managed
+        List<Hotel> hotelsToDelete = hotelRepository.findAllById(hotelIds)
+                .stream()
+                .filter(hotel -> hotel != null) // Loại bỏ null nếu có
+                .collect(Collectors.toList());
+
+        if (hotelsToDelete.size() != hotelIds.size()) {
+            List<Integer> foundIds = hotelsToDelete.stream().map(Hotel::getId).toList();
+            List<Integer> notFoundIds = hotelIds.stream().filter(id -> !foundIds.contains(id)).toList();
+            throw new IllegalStateException("Không tìm thấy khách sạn với các ID: " + notFoundIds);
+        }
+
+        List<Integer> hotelIdsList = hotelsToDelete.stream().map(Hotel::getId).toList();
+        List<RoomType> roomsToDelete = roomRepository.findByHotelIdIn(hotelIdsList);
+        if (!roomsToDelete.isEmpty()) {
+            roomRepository.deleteAll(roomsToDelete);
+            roomRepository.flush();
+            logger.debug("Deleted {} rooms related to hotels {}", roomsToDelete.size(), hotelIds);
+        }
+
+        transactionTemplate.execute(status -> {
+            try {
+                logger.debug("Attempting to delete hotels with IDs: {}", hotelIds);
+                // Xóa trực tiếp bằng query để tránh vấn đề detached
+                hotelRepository.deleteByIdIn(hotelIds); // Thêm phương thức này
+                hotelRepository.flush();
+//                long remainingCount = hotelRepository.countByIdIn(hotelIds);
+//                if (remainingCount > 0) {
+//                    logger.warn("Deletion failed: {} hotels with IDs {} still exist", remainingCount, hotelIds);
+//                    throw new IllegalStateException("Some hotels were not deleted: " + hotelIds);
+//                }
+                logger.info("Hotels with IDs {} have been deleted successfully", hotelIds);
+                return null;
+            } catch (Exception e) {
+                logger.error("Failed to delete hotels with IDs {}: {}", hotelIds, e.getMessage(), e);
+                status.setRollbackOnly();
+                throw new RuntimeException("Failed to delete hotels: " + e.getMessage(), e);
             }
         });
     }
@@ -611,7 +682,7 @@ public class AdminService {
         transactionTemplate.execute(status -> {
             try {
                 placeRepository.deleteAll(placesToDelete);
-//                placeRepository.flush();
+                placeRepository.flush();
                 logger.info("Places with IDs {} have been deleted successfully", placeIds);
                 return null;
             } catch (Exception e) {
@@ -659,7 +730,7 @@ public class AdminService {
         transactionTemplate.execute(status -> {
             try {
                 roomRepository.deleteAll(roomsToDelete);
-//                roomRepository.flush(); //flush() ép các thay đổi trong Persistence Context được áp dụng ngay lập tức xuống database, mà không cần đợi đến khi giao dịch commit.
+                roomRepository.flush(); //flush() ép các thay đổi trong Persistence Context được áp dụng ngay lập tức xuống database, mà không cần đợi đến khi giao dịch commit.
                 logger.info("Rooms with IDs {} have been deleted successfully", roomIds);
                 return null;
             } catch (Exception e) {

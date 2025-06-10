@@ -15,7 +15,7 @@ public interface RoomRepository extends JpaRepository<RoomType, Integer> {
     Page<RoomType> findAll(Pageable pageable); // phân trang
 
     List<RoomType> findAll(); // Lấy toàn bộ phòng
-//    List<RoomType> findByHotelId(Integer hotelId);
+    List<RoomType> findByHotelIdIn(List<Integer> hotelIds);
 
     Page<RoomType> findByNameContainingIgnoreCase(Pageable pageable,String name);
 
