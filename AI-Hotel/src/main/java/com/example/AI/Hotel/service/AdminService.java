@@ -603,7 +603,6 @@ public class AdminService {
             throw new IllegalArgumentException("Danh sách ID khách sạn không được rỗng");
         }
 
-        // Tải lại entity trong cùng session để đảm bảo managed
         List<Hotel> hotelsToDelete = hotelRepository.findAllById(hotelIds)
                 .stream()
                 .filter(hotel -> hotel != null) // Loại bỏ null nếu có
@@ -626,14 +625,8 @@ public class AdminService {
         transactionTemplate.execute(status -> {
             try {
                 logger.debug("Attempting to delete hotels with IDs: {}", hotelIds);
-                // Xóa trực tiếp bằng query để tránh vấn đề detached
-                hotelRepository.deleteByIdIn(hotelIds); // Thêm phương thức này
+                hotelRepository.deleteByIdIn(hotelIds);
                 hotelRepository.flush();
-//                long remainingCount = hotelRepository.countByIdIn(hotelIds);
-//                if (remainingCount > 0) {
-//                    logger.warn("Deletion failed: {} hotels with IDs {} still exist", remainingCount, hotelIds);
-//                    throw new IllegalStateException("Some hotels were not deleted: " + hotelIds);
-//                }
                 logger.info("Hotels with IDs {} have been deleted successfully", hotelIds);
                 return null;
             } catch (Exception e) {
