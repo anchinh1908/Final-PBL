@@ -80,7 +80,7 @@ public class UserController {
     public ResponseEntity<List<SearchHistoryDTO>> getSearchHistory() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy người dùng"));
 
         List<SearchHistory> history = searchHistoryRepository.findByUserId(user.getId());
         List<SearchHistoryDTO> historyDTOs = history.stream()

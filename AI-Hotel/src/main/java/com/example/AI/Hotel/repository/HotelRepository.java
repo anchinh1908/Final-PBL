@@ -92,6 +92,8 @@ public interface HotelRepository extends JpaRepository<Hotel, Integer> {
             @Param("threshold") double threshold,
             @Param("limit") int limit);
 
+    boolean existsBySlug(String slug);
+
     @Query(value = """
         SELECT 
             he.hotel_id,

@@ -25,14 +25,8 @@ public class PlaceEmbedding {
     @JoinColumn(name = "place_id", nullable = false)
     private Place place;
 
-//    @Column(name = "embedding", columnDefinition = "vector(768)")
-//    @Convert(converter = VectorConverter.class)
-//    @JdbcTypeCode(SqlTypes.VECTOR)
-//    @Array(length = 768)
-//    private float[] embedding; // Ánh xạ cột vector(768)
-
     @Convert(converter = StringVectorConverter.class)
-    @Column(name = "embedding", columnDefinition = "vector(768)")
+    @Column(name = "embedding", columnDefinition = "vector(3072)")
     private String embedding;
 
 

@@ -74,16 +74,23 @@ public class AuthController {
         // Kiểm tra email đã tồn tại
         Optional<User> existingUser = userRepository.findByEmail(email);
         if (existingUser.isPresent()) {
-            response.put("message", "Email đã tồn tại");
-            response.put("status", HttpStatus.BAD_REQUEST.value());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            User user = existingUser.get();
+            // Nếu là tài khoản tạm và OTP đã hết hạn, xóa tài khoản tạm
+            if ("TEMP".equals(user.getProvider()) && user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+                userRepository.delete(user);
+                System.out.println("Đã xóa tài khoản tạm cũ cho email: " + email);
+            } else if ("LOCAL".equals(user.getProvider())) {
+                response.put("message", "Email đã tồn tại và đã được đăng ký");
+                response.put("status", HttpStatus.BAD_REQUEST.value());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
         }
 
         try {
             // Tạo user tạm thời để lưu OTP
             User tempUser = new User();
             tempUser.setEmail(email);
-            tempUser.setProvider("TEMP"); // Đánh dấu là user tạm thời, sẽ cập nhật sau
+            tempUser.setProvider("TEMP");
             tempUser.setRole(User.Role.USER);
 
             // Gửi OTP và lưu vào resetToken
@@ -109,7 +116,7 @@ public class AuthController {
 
         // Tìm user tạm thời theo email
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Email không tồn tại trong hệ thống"));
+                .orElseThrow(() -> new IllegalArgumentException("Email này chưa có OTP. Vui lòng nhập OTP trước rồi thực hiện đăng kí tài khoản "));
 
         // Kiểm tra nếu user đã được đăng ký chính thức (provider = "LOCAL")
         if ("LOCAL".equals(user.getProvider())) {
@@ -126,6 +133,7 @@ public class AuthController {
         }
 
         if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+//            userRepository.delete(user); // Xóa tài khoản tạm
             response.put("message", "Mã OTP đã hết hạn");
             response.put("status", HttpStatus.BAD_REQUEST.value());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -237,45 +245,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-//    @PostMapping("/login")
-//    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
-//        Map<String, Object> response = new HashMap<>();
-//
-//        try {
-//            Authentication authentication = authenticationManager.authenticate(
-//                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-//
-//            String email = authentication.getName();
-//            User user = userRepository.findByEmail(email)
-//                    .orElseThrow(() -> new IllegalStateException("Không tìm thấy người dùng"));
-//
-//            // Kiểm tra tài khoản có phải đăng ký thông thường không
-//            if (!"LOCAL".equals(user.getProvider())) {
-//                response.put("status", HttpStatus.UNAUTHORIZED.value());
-//                response.put("message", "Tài khoản này được đăng ký qua " + user.getProvider() + ". Vui lòng đăng nhập bằng " + user.getProvider());
-//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-//            }
-//
-//            // Kiểm tra trạng thái isDeleted
-//            if (user.isDeleted()) {
-//                response.put("status", HttpStatus.UNAUTHORIZED.value());
-//                response.put("message", "Tài khoản đã bị vô hiệu hóa");
-//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-//            }
-//
-//            String token = jwtUtil.generateToken(email, user.getRole().name());
-//
-//            response.put("status", HttpStatus.OK.value());
-//            response.put("message", "Đăng nhập thành công");
-//            response.put("token", token);
-//            return ResponseEntity.ok(response);
-//
-//        } catch (Exception ex) {
-//            response.put("status", HttpStatus.UNAUTHORIZED.value());
-//            response.put("message", "Email hoặc mật khẩu không hợp lệ");
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-//        }
-//    }
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
         Map<String, Object> response = new HashMap<>();

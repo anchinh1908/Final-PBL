@@ -28,11 +28,11 @@ import java.util.stream.Collectors;
 public class HotelSearchService {
     private static final Logger logger = LoggerFactory.getLogger(HotelSearchService.class);
 
-    private static final double SIMILARITY_THRESHOLD = 0.6;
-    private static final double ROOM_SIMILARITY_THRESHOLD = 0.4;
+    private static final double SIMILARITY_THRESHOLD = 0.2;
+    private static final double ROOM_SIMILARITY_THRESHOLD = 0.05;
     private static final int MAX_HOTELS = 80;
     private static final int MAX_ROOMS = 200;
-    private static final String EMBEDDING_API_URL = "https://anchinh-embeddingapi.hf.space/embed";
+    private static final String EMBEDDING_API_URL = "https://final-pbl-flaskapi.onrender.com/embed";
     private static final double DEFAULT_MAX_DISTANCE_METERS = 5000; // Bán kính mặc định 5km
 
     private final HotelRepository hotelRepository;
@@ -733,7 +733,7 @@ private List<HotelSearchResponse> findMatchingHotels(float[] queryEmbedding) {
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 List<Double> embeddingList = (List<Double>) response.getBody().get("embedding");
-                if (embeddingList.size() != 768) {
+                if (embeddingList.size() != 3072) {
                     throw new RuntimeException("Invalid embedding dimension: " + embeddingList.size());
                 }
                 float[] embedding = new float[embeddingList.size()];

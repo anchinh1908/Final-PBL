@@ -42,4 +42,5 @@ public class EmbeddingRequest {
             this.placeData = null;
         }
     }
+
 }

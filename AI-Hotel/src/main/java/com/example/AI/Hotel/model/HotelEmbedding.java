@@ -26,8 +26,15 @@ public class HotelEmbedding {
     private Hotel hotel;
 
     @Convert(converter = StringVectorConverter.class)
-    @Column(name = "embedding", columnDefinition = "vector(768)")
+    @Column(name = "embedding", columnDefinition = "vector(3072)")
     private String embedding;
 
+    @Version
+    private Integer version;
+
+//    public HotelEmbedding(Integer id, String embeddingVector) {
+//        this.id = id;
+//        this.embedding = embeddingVector;
+//    }
 }
 

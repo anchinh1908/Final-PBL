@@ -22,6 +22,6 @@ public class RoomEmbedding {
     private RoomType room;
 
     @Convert(converter = StringVectorConverter.class)
-    @Column(name = "embedding", columnDefinition = "vector(768)")
+    @Column(name = "embedding", columnDefinition = "vector(3072)")
     private String embedding;
 }

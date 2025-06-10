@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface PlaceRepository extends JpaRepository<Place, Integer> {
+    boolean existsBySlug(String slug);
     Page<Place> findAll(Pageable pageable);
     Page<Place> findByTitleContainingIgnoreCase(Pageable pageable,String title);
 

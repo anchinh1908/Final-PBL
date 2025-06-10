@@ -1,4 +1,8 @@
 package com.example.AI.Hotel.service;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
@@ -7,10 +11,7 @@ import com.example.AI.Hotel.dto.EmbeddingRequest;
 import com.example.AI.Hotel.dto.HotelDTO;
 import com.example.AI.Hotel.dto.PlaceDTO;
 import com.example.AI.Hotel.dto.RoomDTO;
-import com.example.AI.Hotel.model.Hotel;
-import com.example.AI.Hotel.model.Place;
-import com.example.AI.Hotel.model.RoomType;
-import com.example.AI.Hotel.model.User;
+import com.example.AI.Hotel.model.*;
 import com.example.AI.Hotel.repository.*;
 //import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -18,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +30,12 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -43,6 +47,9 @@ public class AdminService {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminService.class);
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final UserRepository userRepository;
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
@@ -50,20 +57,24 @@ public class AdminService {
     private final Cloudinary cloudinary;
     private final RestTemplate restTemplate;
     private final TransactionTemplate transactionTemplate;
+    private final JdbcTemplate jdbcTemplate;
     private static final String EMBEDDING_HOTEL_VECTOR = "https://anchinh-embeddingapi.hf.space/embedHotel";
     private static final String EMBEDDING_ROOM_VECTOR = "https://anchinh-embeddingapi.hf.space/embedRoom";
     private static final String EMBEDDING_PLACE_VECTOR = "https://anchinh-embeddingapi.hf.space/embedPlace";
+    private final HotelEmbeddingRepository hotelEmbeddingRepository;
 
 
     @Autowired
-    public AdminService(UserRepository userRepository, HotelRepository hotelRepository, Cloudinary cloudinary, RoomRepository roomRepository, PlaceRepository placeRepository, HotelEmbeddingRepository hotelEmbeddingRepository, TransactionTemplate transactionTemplate) {
+    public AdminService(UserRepository userRepository, HotelRepository hotelRepository, Cloudinary cloudinary, RoomRepository roomRepository, PlaceRepository placeRepository, TransactionTemplate transactionTemplate, JdbcTemplate jdbcTemplate, HotelEmbeddingRepository hotelEmbeddingRepository) {
         this.userRepository = userRepository;
         this.hotelRepository = hotelRepository;
         this.cloudinary = cloudinary;
         this.roomRepository = roomRepository;
         this.placeRepository = placeRepository;
         this.transactionTemplate = transactionTemplate;
+        this.jdbcTemplate = jdbcTemplate;
         this.restTemplate = new RestTemplate();
+        this.hotelEmbeddingRepository = hotelEmbeddingRepository;
     }
 
     @Transactional
@@ -71,7 +82,7 @@ public class AdminService {
         // Lấy thông tin user hiện tại từ SecurityContext
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new IllegalStateException("Admin not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
 
         // Kiểm tra quyền admin từ authorities
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
@@ -99,7 +110,7 @@ public class AdminService {
         // Lấy thông tin user hiện tại từ SecurityContext
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new IllegalStateException("Admin not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
 
         // Kiểm tra quyền admin từ authorities
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
@@ -124,11 +135,12 @@ public class AdminService {
         userRepository.restoreById(userId);
         logger.info("Admin {} restored user with ID {}", adminEmail, userId);
     }
+    /*
 
-    public Hotel addHotel(HotelDTO hotelDTO, MultipartFile[] images) {
+    public Integer addHotel(HotelDTO hotelDTO, MultipartFile[] images) {
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new IllegalStateException("Admin not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
@@ -139,29 +151,18 @@ public class AdminService {
             throw new SecurityException("Chỉ có admin mới thêm được khách sạn");
         }
 
-        Hotel hotel = new Hotel();
-        hotel.setName(hotelDTO.getName());
-        hotel.setAddress(hotelDTO.getAddress());
-        hotel.setDistrict(hotelDTO.getDistrict());
-        hotel.setDescription(hotelDTO.getDescription());
-        hotel.setHotelLink(hotelDTO.getHotelLink());
-        hotel.setRatingStars(hotelDTO.getRatingStars() != null ? hotelDTO.getRatingStars() : 0);
-        hotel.setFacilities(hotelDTO.getFacilities());
-        hotel.setHighlights(hotelDTO.getHighlights());
-        hotel.setReviews(hotelDTO.getReviews());
-        hotel.setRoomServices(hotelDTO.getRoomServices());
-        hotel.setSlug(hotelDTO.getSlug());
-
-        if (hotelDTO.getLatitude() != null && hotelDTO.getLongitude() != null) {
-            GeometryFactory geometryFactory = new GeometryFactory();
-            Coordinate coordinate = new Coordinate(hotelDTO.getLongitude(), hotelDTO.getLatitude());
-            Point point = geometryFactory.createPoint(coordinate);
-            point.setSRID(4326);
-            hotel.setCoordinates(point);
-        } else {
-            hotel.setCoordinates(null);
+        // Kiểm tra các trường bắt buộc
+        if (hotelDTO.getName() == null || hotelDTO.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Hotel name is required");
+        }
+        if (hotelDTO.getAddress() == null || hotelDTO.getAddress().trim().isEmpty()) {
+            throw new IllegalArgumentException("Hotel address is required");
+        }
+        if (hotelDTO.getDistrict() == null || hotelDTO.getDistrict().trim().isEmpty()) {
+            throw new IllegalArgumentException("Hotel district is required");
         }
 
+        // Xử lý upload hình ảnh
         List<String> uploadedImageUrls = new ArrayList<>();
         if (images != null && images.length > 0) {
             logger.info("Received {} image files", images.length);
@@ -171,102 +172,213 @@ public class AdminService {
                         logger.warn("Skipping empty file: {}", image != null ? image.getOriginalFilename() : "null");
                         continue;
                     }
-
                     String contentType = image.getContentType();
                     if (contentType == null || !contentType.matches("image/(jpeg|png|jpg)")) {
                         logger.warn("Unsupported file format for file: {}. Expected JPEG, PNG, or JPG.", image.getOriginalFilename());
                         continue;
                     }
-
                     byte[] fileBytes = image.getBytes();
                     if (fileBytes.length == 0) {
                         logger.warn("File is empty after reading: {}", image.getOriginalFilename());
                         continue;
                     }
-
                     String originalFilename = image.getOriginalFilename();
                     String publicId = originalFilename != null ?
                             originalFilename.replaceAll("[^a-zA-Z0-9-_]", "_") : UUID.randomUUID().toString();
-
                     Map uploadResult = cloudinary.uploader().upload(fileBytes, ObjectUtils.asMap(
                             "folder", "hotels/" + (hotelDTO.getSlug() != null ? hotelDTO.getSlug() : "default"),
                             "resource_type", "image",
                             "public_id", publicId
                     ));
-
                     String uploadedUrl = (String) uploadResult.get("secure_url");
                     uploadedImageUrls.add(uploadedUrl);
                     logger.info("Uploaded image to Cloudinary: {}", uploadedUrl);
-
                 } catch (Exception e) {
                     logger.error("Error uploading image to Cloudinary: {}", image != null ? image.getOriginalFilename() : "null", e);
                 }
             }
         }
-        hotel.setImageUrls(uploadedImageUrls.isEmpty() ? null : uploadedImageUrls);
+        logger.info("Uploaded image URLs: {}", uploadedImageUrls);
+        hotelDTO.setImageUrls(uploadedImageUrls.isEmpty() ? null : uploadedImageUrls);
 
-        Hotel savedHotel = transactionTemplate.execute(status -> {
-            try {
-                Hotel hotelToSave = hotelRepository.save(hotel);
-                hotelRepository.flush();
-                return hotelToSave;
-            } catch (DataIntegrityViolationException e) {
-                if (e.getMessage().contains("hotels_slug_key")) {
-                    throw new DuplicateSlugException("Khách sạn với slug '" + hotelDTO.getSlug() + "' đã tồn tại");
-                }
-                throw new RuntimeException("Failed to save hotel: " + e.getMessage());
-            }
-        });
-
+        // Gửi dữ liệu tới Python
         List<HotelDTO> hotelData = new ArrayList<>();
-        HotelDTO dto = new HotelDTO();
-        dto.setId(savedHotel.getId());
-        dto.setName(savedHotel.getName());
-        dto.setAddress(savedHotel.getAddress());
-        dto.setDistrict(savedHotel.getDistrict());
-        dto.setDescription(savedHotel.getDescription());
-        dto.setHotelLink(savedHotel.getHotelLink());
-        dto.setRatingStars(savedHotel.getRatingStars());
-        dto.setFacilities(savedHotel.getFacilities());
-        dto.setHighlights(savedHotel.getHighlights());
-        dto.setReviews(savedHotel.getReviews());
-        dto.setRoomServices(savedHotel.getRoomServices());
-        dto.setSlug(savedHotel.getSlug());
-        hotelData.add(dto);
+        hotelData.add(hotelDTO);
+        EmbeddingRequest requestBody = new EmbeddingRequest(hotelData, "hotel");
 
-        if (!hotelData.isEmpty()) {
-            try {
-                logger.info("Calling embedding API for hotel");
-
-                EmbeddingRequest requestBody = new EmbeddingRequest(hotelData, "hotel");
-
-                logger.info("Sending hotel data to embedding API: {}", hotelData);
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-
-                HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
-                ResponseEntity<Map<String, String>> response = restTemplate.exchange(
-                        EMBEDDING_HOTEL_VECTOR,
-                        HttpMethod.POST,
-                        requestEntity,
-                        new ParameterizedTypeReference<Map<String, String>>() {}
-                );
-
-                logger.info("Embedding created for hotel ID: {}", savedHotel.getId());
-
-            } catch (Exception e) {
-                throw new RuntimeException("Không thể thêm được khách sạn với ID " + savedHotel.getId() + " vì không tạo được dữ liệu vector");
-            }
+        // Log dữ liệu gửi đi
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+            logger.info("Sending request to Python: {}", jsonRequest);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize request: {}", e.getMessage());
         }
 
-        return savedHotel;
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    "http://127.0.0.1:8001/saveHotel",
+                    HttpMethod.POST,
+                    requestEntity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {
+                    }
+            );
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("hotel_id")) {
+                return ((Number) responseBody.get("hotel_id")).intValue();
+            }
+            throw new RuntimeException("Không nhận được hotel_id từ Python service");
+        }catch (HttpClientErrorException e) {
+            if (e.getStatusCode().value() == 409) {
+                String slug = hotelDTO.getSlug() != null ? hotelDTO.getSlug() : "null";
+                logger.error("Slug conflict detected - Slug: {}, Error: {}", slug, e.getResponseBodyAsString());
+                throw new IllegalStateException("Slug '" + slug + "' đã tồn tại", e);
+            }
+            logger.error("Error calling Python service: {}", e.getMessage());
+            throw new RuntimeException("Không thể lưu khách sạn và tạo embedding", e);
+        }  catch (Exception e) {
+            logger.error("Error calling Python service: {}", e.getMessage());
+            throw new RuntimeException("Không thể lưu khách sạn và tạo embedding", e);
+        }
     }
 
-    public Hotel updateHotel(Integer hotelId, HotelDTO hotelDTO) {
+     */
+
+    public Map<String, Object> addHotel(HotelDTO hotelDTO, MultipartFile[] images) {
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new IllegalStateException("Admin not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
+
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            logger.warn("User {} attempted to add a hotel but lacks ADMIN role", adminEmail);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Chỉ có admin mới thêm được khách sạn");
+            response.put("status", HttpStatus.FORBIDDEN.value());
+            return response;
+        }
+
+        // Kiểm tra các trường bắt buộc
+        if (hotelDTO.getName() == null || hotelDTO.getName().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Hotel name is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (hotelDTO.getAddress() == null || hotelDTO.getAddress().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Hotel address is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (hotelDTO.getDistrict() == null || hotelDTO.getDistrict().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Hotel district is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+
+        // Kiểm tra slug đã tồn tại
+        String slug = hotelDTO.getSlug();
+        if (slug != null && !slug.trim().isEmpty() && hotelRepository.existsBySlug(slug)) {
+            logger.error("Slug conflict detected - Slug: {} already exists", slug);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Slug '" + slug + "' đã tồn tại");
+            errorResponse.put("status", HttpStatus.CONFLICT.value());
+            return errorResponse;
+        }
+
+        // Xử lý upload hình ảnh
+        List<String> uploadedImageUrls = new ArrayList<>();
+        if (images != null && images.length > 0) {
+            logger.info("Received {} image files", images.length);
+            for (MultipartFile image : images) {
+                try {
+                    if (image == null || image.isEmpty()) {
+                        logger.warn("Skipping empty file: {}", image != null ? image.getOriginalFilename() : "null");
+                        continue;
+                    }
+                    String contentType = image.getContentType();
+                    if (contentType == null || !contentType.matches("image/(jpeg|png|jpg)")) {
+                        logger.warn("Unsupported file format for file: {}. Expected JPEG, PNG, or JPG.", image.getOriginalFilename());
+                        continue;
+                    }
+                    byte[] fileBytes = image.getBytes();
+                    if (fileBytes.length == 0) {
+                        logger.warn("File is empty after reading: {}", image.getOriginalFilename());
+                        continue;
+                    }
+                    String originalFilename = image.getOriginalFilename();
+                    String publicId = originalFilename != null ?
+                            originalFilename.replaceAll("[^a-zA-Z0-9-_]", "_") : UUID.randomUUID().toString();
+                    Map uploadResult = cloudinary.uploader().upload(fileBytes, ObjectUtils.asMap(
+                            "folder", "hotels/" + (hotelDTO.getSlug() != null ? hotelDTO.getSlug() : "default"),
+                            "resource_type", "image",
+                            "public_id", publicId
+                    ));
+                    String uploadedUrl = (String) uploadResult.get("secure_url");
+                    uploadedImageUrls.add(uploadedUrl);
+                    logger.info("Uploaded image to Cloudinary: {}", uploadedUrl);
+                } catch (Exception e) {
+                    logger.error("Error uploading image to Cloudinary: {}", image != null ? image.getOriginalFilename() : "null", e);
+                }
+            }
+        }
+        logger.info("image -> " + uploadedImageUrls);
+        hotelDTO.setImageUrls(uploadedImageUrls.isEmpty() ? null : uploadedImageUrls);
+
+        // Gửi dữ liệu tới Python
+        List<HotelDTO> hotelData = new ArrayList<>();
+        hotelData.add(hotelDTO);
+        EmbeddingRequest requestBody = new EmbeddingRequest(hotelData, "hotel");
+
+        // Log dữ liệu gửi đi
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+            logger.info("Sending request to Python: {}", jsonRequest);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize request: {}", e.getMessage());
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    "https://final-pbl-flaskapi.onrender.com/saveHotel",
+                    HttpMethod.POST,
+                    requestEntity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("hotel_id")) {
+                Map<String, Object> successResponse = new HashMap<>();
+                successResponse.put("message", "Khách sạn với ID " + responseBody.get("hotel_id") + " đã được thêm thành công");
+                successResponse.put("status", HttpStatus.CREATED.value());
+                successResponse.put("hotel_id", ((Number) responseBody.get("hotel_id")).intValue());
+                return successResponse;
+            }
+            throw new RuntimeException("Không nhận được hotel_id từ Python service");
+        } catch (Exception e) {
+            logger.error("Error calling Python service: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Không thể lưu khách sạn và tạo embedding");
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return errorResponse;
+        }
+    }
+
+    public Map<String, Object> updateHotel(Integer hotelId, HotelDTO hotelDTO, String images) {
+        String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
@@ -274,88 +386,114 @@ public class AdminService {
 
         if (!isAdmin) {
             logger.warn("User {} attempted to update a hotel but lacks ADMIN role", adminEmail);
-            throw new SecurityException("Only admins can update hotels");
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Chỉ có admin mới cập nhật được khách sạn");
+            response.put("status", HttpStatus.FORBIDDEN.value());
+            return response;
         }
 
+        // Kiểm tra hotel tồn tại
         Hotel existingHotel = hotelRepository.findById(hotelId)
-                .orElseThrow(() -> new IllegalStateException("Hotel with ID " + hotelId + " not found"));
+                .orElseThrow(() -> new IllegalStateException("Khách sạn với ID " + hotelId + " không tồn tại"));
 
-        existingHotel.setName(hotelDTO.getName() != null ? hotelDTO.getName() : existingHotel.getName());
-        existingHotel.setAddress(hotelDTO.getAddress() != null ? hotelDTO.getAddress() : existingHotel.getAddress());
-        existingHotel.setDistrict(hotelDTO.getDistrict() != null ? hotelDTO.getDistrict() : existingHotel.getDistrict());
-        existingHotel.setDescription(hotelDTO.getDescription() != null ? hotelDTO.getDescription() : existingHotel.getDescription());
-        existingHotel.setHotelLink(hotelDTO.getHotelLink() != null ? hotelDTO.getHotelLink() : existingHotel.getHotelLink());
-        existingHotel.setRatingStars(hotelDTO.getRatingStars() != null ? hotelDTO.getRatingStars() : existingHotel.getRatingStars());
-        existingHotel.setFacilities(hotelDTO.getFacilities() != null ? hotelDTO.getFacilities() : existingHotel.getFacilities());
-        existingHotel.setHighlights(hotelDTO.getHighlights() != null ? hotelDTO.getHighlights() : existingHotel.getHighlights());
-        existingHotel.setReviews(hotelDTO.getReviews() != null ? hotelDTO.getReviews() : existingHotel.getReviews());
-        existingHotel.setRoomServices(hotelDTO.getRoomServices() != null ? hotelDTO.getRoomServices() : existingHotel.getRoomServices());
-        existingHotel.setImageUrls(hotelDTO.getImageUrls() != null ? hotelDTO.getImageUrls() : existingHotel.getImageUrls());
-
-        if (hotelDTO.getLatitude() != null && hotelDTO.getLongitude() != null) {
-            GeometryFactory geometryFactory = new GeometryFactory();
-            Coordinate coordinate = new Coordinate(hotelDTO.getLongitude(), hotelDTO.getLatitude());
-            Point point = geometryFactory.createPoint(coordinate);
-            point.setSRID(4326);
-            existingHotel.setCoordinates(point);
+        // Kiểm tra các trường bắt buộc
+        if (hotelDTO.getName() == null || hotelDTO.getName().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Hotel name is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (hotelDTO.getAddress() == null || hotelDTO.getAddress().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Hotel address is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (hotelDTO.getDistrict() == null || hotelDTO.getDistrict().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Hotel district is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
         }
 
-        Hotel updatedHotel = transactionTemplate.execute(status -> {
+        // Không cho phép cập nhật slug, giữ nguyên giá trị cũ
+        String originalSlug = existingHotel.getSlug();
+        if (originalSlug == null || originalSlug.trim().isEmpty()) {
+            logger.warn("Original slug is empty or null for hotel ID {}", hotelId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Không thể cập nhật khách sạn vì slug gốc không tồn tại");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        hotelDTO.setSlug(originalSlug); // Gán lại slug cũ, bỏ qua giá trị mới từ hotelDTO
+
+        // Xử lý images từ chuỗi
+        List<String> imageUrls = new ArrayList<>();
+        if (images != null && !images.trim().isEmpty()) {
             try {
-                Hotel hotelToSave = hotelRepository.save(existingHotel);
-                hotelRepository.flush();
-
-                List<HotelDTO> hotelData = new ArrayList<>();
-                HotelDTO dto = new HotelDTO();
-                dto.setId(hotelToSave.getId());
-                dto.setName(hotelToSave.getName());
-                dto.setAddress(hotelToSave.getAddress());
-                dto.setDistrict(hotelToSave.getDistrict());
-                dto.setDescription(hotelToSave.getDescription());
-                dto.setHotelLink(hotelToSave.getHotelLink());
-                dto.setRatingStars(hotelToSave.getRatingStars());
-                dto.setFacilities(hotelToSave.getFacilities());
-                dto.setHighlights(hotelToSave.getHighlights());
-                dto.setReviews(hotelToSave.getReviews());
-                dto.setRoomServices(hotelToSave.getRoomServices());
-                dto.setSlug(hotelToSave.getSlug());
-                hotelData.add(dto);
-
-                if (!hotelData.isEmpty()) {
-                    logger.info("Calling embedding API for hotel update");
-
-                    EmbeddingRequest requestBody = new EmbeddingRequest(hotelData, "hotel");
-
-                    logger.info("Sending hotel data to embedding API: {}", hotelData);
-
-                    HttpHeaders headers = new HttpHeaders();
-                    headers.setContentType(MediaType.APPLICATION_JSON);
-
-                    HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
-                    ResponseEntity<Map<String, String>> response = restTemplate.exchange(
-                            EMBEDDING_HOTEL_VECTOR,
-                            HttpMethod.POST,
-                            requestEntity,
-                            new ParameterizedTypeReference<Map<String, String>>() {}
-                    );
-
-                    logger.info("Embedding updated for hotel ID: {}", hotelToSave.getId());
+                ObjectMapper objectMapper = new ObjectMapper();
+                imageUrls = objectMapper.readValue(images, new TypeReference<List<String>>() {});
+                logger.info("Parsed image URLs from JSON: {}", imageUrls);
+            } catch (JsonProcessingException e) {
+                String[] urlArray = images.split(",");
+                for (String url : urlArray) {
+                    String trimmedUrl = url.trim();
+                    if (!trimmedUrl.isEmpty()) {
+                        imageUrls.add(trimmedUrl);
+                    }
                 }
-
-                return hotelToSave;
-
-            } catch (DataIntegrityViolationException e) {
-                if (e.getMessage().contains("hotels_slug_key")) {
-                    throw new DuplicateSlugException("Slug conflict detected (should not occur as slug is not updated)");
-                }
-                throw new RuntimeException("Failed to update hotel: " + e.getMessage());
-            } catch (Exception e) {
-                logger.error("Error during update: {}", e.getMessage());
-                throw new RuntimeException("Không thể cập nhật được dữ liệu khách sạn vì không tạo được vector");
+                logger.info("Parsed image URLs from comma-separated string: {}", imageUrls);
             }
-        });
+        } else if (existingHotel.getImageUrls() != null) {
+            // Giữ nguyên imageUrls cũ nếu không có ảnh mới
+            imageUrls.addAll(existingHotel.getImageUrls());
+            logger.info("Using existing image URLs: {}", imageUrls);
+        } else {
+            logger.warn("No image URLs provided, and no existing images found");
+        }
+        hotelDTO.setImageUrls(imageUrls.isEmpty() ? null : imageUrls);
 
-        return updatedHotel;
+        // Gửi dữ liệu tới Python
+        List<HotelDTO> hotelData = new ArrayList<>();
+        hotelDTO.setId(hotelId); // Thêm id để Python biết hotel cần cập nhật
+        hotelData.add(hotelDTO);
+        EmbeddingRequest requestBody = new EmbeddingRequest(hotelData, "hotel");
+
+        // Log dữ liệu gửi đi
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+            logger.info("Sending update request to Python: {}", jsonRequest);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize update request: {}", e.getMessage());
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    "https://final-pbl-flaskapi.onrender.com/updateHotel",
+                    HttpMethod.POST,
+                    requestEntity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("hotel_id")) {
+                Map<String, Object> successResponse = new HashMap<>();
+                successResponse.put("message", "Khách sạn với ID " + responseBody.get("hotel_id") + " đã được cập nhật thành công");
+                successResponse.put("status", HttpStatus.OK.value());
+                successResponse.put("hotel_id", ((Number) responseBody.get("hotel_id")).intValue());
+                return successResponse;
+            }
+            throw new RuntimeException("Không nhận được hotel_id từ Python service");
+        } catch (Exception e) {
+            logger.error("Error calling Python service for update: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Không thể cập nhật khách sạn và tạo embedding");
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return errorResponse;
+        }
     }
 
     public void deleteHotel(Integer hotelId) {
@@ -531,10 +669,10 @@ public class AdminService {
         });
     }
 
-    public RoomType addRoom(RoomDTO roomDTO) {
+    public Map<String, Object> addRoom(RoomDTO roomDTO) {
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new IllegalStateException("Admin not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
@@ -542,81 +680,84 @@ public class AdminService {
 
         if (!isAdmin) {
             logger.warn("User {} attempted to add a room but lacks ADMIN role", adminEmail);
-            throw new SecurityException("Only admins can add rooms");
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Chỉ có admin mới thêm được phòng");
+            response.put("status", HttpStatus.FORBIDDEN.value());
+            return response;
         }
 
-        Hotel hotel = hotelRepository.findById(roomDTO.getHotelId())
-                .orElseThrow(() -> new IllegalStateException("Hotel with ID " + roomDTO.getHotelId() + " not found"));
+        // Kiểm tra các trường bắt buộc
+        if (roomDTO.getHotelId() == null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Hotel ID is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (roomDTO.getName() == null || roomDTO.getName().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Room name is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (roomDTO.getNumberOfGuests() == null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Number of guests is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (roomDTO.getPrice() == null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Price is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
 
-        RoomType room = new RoomType();
-        room.setHotel(hotel);
-        room.setName(roomDTO.getName());
-        room.setNumberOfGuests(roomDTO.getNumberOfGuests());
-        room.setPrice(roomDTO.getPrice());
-        room.setOriginalPrice(roomDTO.getOriginalPrice());
-        room.setTaxesAndFeesUnderPrice(roomDTO.getTaxesAndFeesUnderPrice() != null ? roomDTO.getTaxesAndFeesUnderPrice() : false);
-
-        // Lưu RoomType trước
-        RoomType savedRoom = transactionTemplate.execute(status -> {
-            try {
-                RoomType roomToSave = roomRepository.save(room);
-                roomRepository.flush();
-                return roomToSave;
-            } catch (Exception e) {
-                logger.error("Error during saving room: {}", e.getMessage());
-                throw new RuntimeException("Không thể lưu dữ liệu phòng: " + e.getMessage());
-            }
-        });
-
-        // Sau khi giao dịch commit, gọi API /embedRoom
+        // Gửi dữ liệu tới Python
         List<RoomDTO> roomData = new ArrayList<>();
-        RoomDTO dto = new RoomDTO();
-        dto.setId(savedRoom.getId());
-        dto.setHotelId(savedRoom.getHotel().getId());
-        dto.setName(savedRoom.getName());
-        dto.setNumberOfGuests(savedRoom.getNumberOfGuests());
-        dto.setPrice(savedRoom.getPrice());
-        dto.setOriginalPrice(savedRoom.getOriginalPrice());
-        dto.setTaxesAndFeesUnderPrice(savedRoom.getTaxesAndFeesUnderPrice());
-        roomData.add(dto);
+        roomData.add(roomDTO);
+        EmbeddingRequest requestBody = new EmbeddingRequest(roomData, "room");
 
+        // Log dữ liệu gửi đi
+        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            logger.info("Calling embedding API for room with roomData: {}", roomData);
-            EmbeddingRequest requestBody = new EmbeddingRequest(roomData, "room");
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
-            ResponseEntity<Map<String, String>> response = restTemplate.exchange(
-                    EMBEDDING_ROOM_VECTOR,
+            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+            logger.info("Sending request to Python: {}", jsonRequest);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize request: {}", e.getMessage());
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    "https://final-pbl-flaskapi.onrender.com/saveRoom",
                     HttpMethod.POST,
                     requestEntity,
-                    new ParameterizedTypeReference<Map<String, String>>() {}
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
             );
-            logger.info("Embedding created for room ID: {}", savedRoom.getId());
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("room_id")) {
+                Map<String, Object> successResponse = new HashMap<>();
+                successResponse.put("message", "Phòng với ID " + responseBody.get("room_id") + " đã được thêm thành công");
+                successResponse.put("status", HttpStatus.CREATED.value());
+                successResponse.put("room_id", ((Number) responseBody.get("room_id")).intValue());
+                return successResponse;
+            }
+            throw new RuntimeException("Không nhận được room_id từ Python service");
         } catch (Exception e) {
-            logger.error("Error during embedding creation: {}", e.getMessage());
-            // Rollback: Xóa bản ghi đã lưu trong room_types
-            transactionTemplate.execute(status -> {
-                try {
-                    roomRepository.delete(savedRoom);
-                    roomRepository.flush();
-                    logger.info("Rolled back room with ID: {}", savedRoom.getId());
-                    return null;
-                } catch (Exception rollbackEx) {
-                    logger.error("Failed to rollback room deletion: {}", rollbackEx.getMessage());
-                    throw new RuntimeException("Failed to rollback: " + rollbackEx.getMessage());
-                }
-            });
-            throw new RuntimeException("Không thể thêm dữ liệu phòng vì lỗi tạo embedding: " + e.getMessage());
+            logger.error("Error calling Python service: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Không thể lưu phòng và tạo embedding");
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return errorResponse;
         }
-
-        return savedRoom;
     }
 
-    public RoomType updateRoom(Integer roomId, RoomDTO roomDTO) {
+    public Map<String, Object> updateRoom(Integer roomId, RoomDTO roomDTO) {
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new IllegalStateException("Admin not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
@@ -624,85 +765,78 @@ public class AdminService {
 
         if (!isAdmin) {
             logger.warn("User {} attempted to update a room but lacks ADMIN role", adminEmail);
-            throw new SecurityException("Only admins can update rooms");
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Chỉ có admin mới cập nhật được phòng");
+            response.put("status", HttpStatus.FORBIDDEN.value());
+            return response;
         }
 
+        // Kiểm tra room tồn tại
         RoomType existingRoom = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalStateException("Room with ID " + roomId + " not found"));
+                .orElseThrow(() -> new IllegalStateException("Phòng với ID " + roomId + " không tồn tại"));
 
-        // Lưu trạng thái ban đầu để rollback nếu cần
-        RoomType originalRoom = new RoomType();
-        originalRoom.setId(existingRoom.getId());
-        originalRoom.setHotel(existingRoom.getHotel());
-        originalRoom.setName(existingRoom.getName());
-        originalRoom.setNumberOfGuests(existingRoom.getNumberOfGuests());
-        originalRoom.setPrice(existingRoom.getPrice());
-        originalRoom.setOriginalPrice(existingRoom.getOriginalPrice());
-        originalRoom.setTaxesAndFeesUnderPrice(existingRoom.getTaxesAndFeesUnderPrice());
+        // Kiểm tra các trường bắt buộc
+        if (roomDTO.getName() == null || roomDTO.getName().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Room name is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (roomDTO.getNumberOfGuests() == null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Number of guests is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (roomDTO.getPrice() == null) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Price is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
 
-        // Cập nhật các trường
-        existingRoom.setName(roomDTO.getName() != null ? roomDTO.getName() : existingRoom.getName());
-        existingRoom.setNumberOfGuests(roomDTO.getNumberOfGuests() != null ? roomDTO.getNumberOfGuests() : existingRoom.getNumberOfGuests());
-        existingRoom.setPrice(roomDTO.getPrice() != null ? roomDTO.getPrice() : existingRoom.getPrice());
-        existingRoom.setOriginalPrice(roomDTO.getOriginalPrice() != null ? roomDTO.getOriginalPrice() : existingRoom.getOriginalPrice());
-        existingRoom.setTaxesAndFeesUnderPrice(roomDTO.getTaxesAndFeesUnderPrice() != null ? roomDTO.getTaxesAndFeesUnderPrice() : existingRoom.getTaxesAndFeesUnderPrice());
-
-        // Lưu RoomType trước
-        RoomType updatedRoom = transactionTemplate.execute(status -> {
-            try {
-                RoomType roomToSave = roomRepository.save(existingRoom);
-                roomRepository.flush();
-                return roomToSave;
-            } catch (Exception e) {
-                logger.error("Error during updating room: {}", e.getMessage());
-                throw new RuntimeException("Không thể cập nhật dữ liệu phòng: " + e.getMessage());
-            }
-        });
-
-        // Sau khi giao dịch commit, gọi API /embedRoom
+        // Gửi dữ liệu tới Python
         List<RoomDTO> roomData = new ArrayList<>();
-        RoomDTO dto = new RoomDTO();
-        dto.setId(updatedRoom.getId());
-        dto.setHotelId(updatedRoom.getHotel().getId()); // Thêm hotelId từ RoomType hiện tại
-        dto.setName(updatedRoom.getName());
-        dto.setNumberOfGuests(updatedRoom.getNumberOfGuests());
-        dto.setPrice(updatedRoom.getPrice());
-        dto.setOriginalPrice(updatedRoom.getOriginalPrice());
-        dto.setTaxesAndFeesUnderPrice(updatedRoom.getTaxesAndFeesUnderPrice());
-        roomData.add(dto);
+        roomDTO.setId(roomId); // Thêm id để Python biết room cần cập nhật
+//        roomDTO.
+        roomData.add(roomDTO);
+        EmbeddingRequest requestBody = new EmbeddingRequest(roomData, "room");
 
+        // Log dữ liệu gửi đi
+        ObjectMapper objectMapper = new ObjectMapper();
         try {
-            logger.info("Calling embedding API for room update with roomData: {}", roomData);
-            EmbeddingRequest requestBody = new EmbeddingRequest(roomData, "room");
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
-            ResponseEntity<Map<String, String>> response = restTemplate.exchange(
-                    EMBEDDING_ROOM_VECTOR,
+            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+            logger.info("Sending update request to Python: {}", jsonRequest);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize update request: {}", e.getMessage());
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    "https://final-pbl-flaskapi.onrender.com/updateRoom",
                     HttpMethod.POST,
                     requestEntity,
-                    new ParameterizedTypeReference<Map<String, String>>() {}
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
             );
-            logger.info("Embedding updated for room ID: {}", updatedRoom.getId());
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("room_id")) {
+                Map<String, Object> successResponse = new HashMap<>();
+                successResponse.put("message", "Phòng với ID " + responseBody.get("room_id") + " đã được cập nhật thành công");
+                successResponse.put("status", HttpStatus.OK.value());
+                successResponse.put("room_id", ((Number) responseBody.get("room_id")).intValue());
+                return successResponse;
+            }
+            throw new RuntimeException("Không nhận được room_id từ Python service");
         } catch (Exception e) {
-            logger.error("Error during embedding update: {}", e.getMessage());
-            // Rollback: Khôi phục trạng thái ban đầu của RoomType
-            transactionTemplate.execute(status -> {
-                try {
-                    originalRoom.setId(updatedRoom.getId()); // Giữ nguyên ID
-                    roomRepository.save(originalRoom);
-                    roomRepository.flush();
-                    logger.info("Rolled back room update for ID: {}", updatedRoom.getId());
-                    return null;
-                } catch (Exception rollbackEx) {
-                    logger.error("Failed to rollback room update: {}", rollbackEx.getMessage());
-                    throw new RuntimeException("Failed to rollback: " + rollbackEx.getMessage());
-                }
-            });
-            throw new RuntimeException("Không thể cập nhật dữ liệu phòng vì lỗi tạo embedding: " + e.getMessage());
+            logger.error("Error calling Python service for update: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Không thể cập nhật phòng và tạo embedding");
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return errorResponse;
         }
-
-        return updatedRoom;
     }
 
     public void deleteRoom(Integer roomId) {
@@ -736,6 +870,7 @@ public class AdminService {
         });
     }
 
+    /*
     public Place addPlace(PlaceDTO placeDTO, MultipartFile[] images) {
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User admin = userRepository.findByEmail(adminEmail)
@@ -872,10 +1007,134 @@ public class AdminService {
         return savedPlace;
     }
 
-    public Place updatePlace(PlaceDTO placeDTO) {
+
+     */
+
+    public Map<String, Object> addPlace(PlaceDTO placeDTO, MultipartFile[] images) {
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new IllegalStateException("Admin not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
+
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            logger.warn("User {} attempted to add a place but lacks ADMIN role", adminEmail);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Chỉ có admin mới thêm được địa điểm");
+            response.put("status", HttpStatus.FORBIDDEN.value());
+            return response;
+        }
+
+        // Kiểm tra các trường bắt buộc
+        if (placeDTO.getTitle() == null || placeDTO.getTitle().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Place title is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (placeDTO.getAddress() == null || placeDTO.getAddress().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Place address is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+
+        // Kiểm tra slug đã tồn tại
+        String slug = placeDTO.getSlug();
+        if (slug != null && !slug.trim().isEmpty() && placeRepository.existsBySlug(slug)) {
+            logger.error("Slug conflict detected - Slug: {} already exists", slug);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Slug '" + slug + "' đã tồn tại");
+            errorResponse.put("status", HttpStatus.CONFLICT.value());
+            return errorResponse;
+        }
+
+        // Xử lý upload hình ảnh
+        List<String> uploadedImageUrls = new ArrayList<>();
+        if (images != null && images.length > 0) {
+            logger.info("Received {} image files", images.length);
+            for (MultipartFile image : images) {
+                try {
+                    if (image == null || image.isEmpty()) {
+                        logger.warn("Skipping empty file: {}", image != null ? image.getOriginalFilename() : "null");
+                        continue;
+                    }
+                    String contentType = image.getContentType();
+                    if (contentType == null || !contentType.matches("image/(jpeg|png|jpg)")) {
+                        logger.warn("Unsupported file format for file: {}. Expected JPEG, PNG, or JPG.", image.getOriginalFilename());
+                        continue;
+                    }
+                    byte[] fileBytes = image.getBytes();
+                    if (fileBytes.length == 0) {
+                        logger.warn("File is empty after reading: {}", image.getOriginalFilename());
+                        continue;
+                    }
+                    String originalFilename = image.getOriginalFilename();
+                    String publicId = originalFilename != null ?
+                            originalFilename.replaceAll("[^a-zA-Z0-9-_]", "_") : UUID.randomUUID().toString();
+                    Map uploadResult = cloudinary.uploader().upload(fileBytes, ObjectUtils.asMap(
+                            "folder", "places/" + (placeDTO.getSlug() != null ? placeDTO.getSlug() : "default"),
+                            "resource_type", "image",
+                            "public_id", publicId
+                    ));
+                    String uploadedUrl = (String) uploadResult.get("secure_url");
+                    uploadedImageUrls.add(uploadedUrl);
+                    logger.info("Uploaded image to Cloudinary: {}", uploadedUrl);
+                } catch (Exception e) {
+                    logger.error("Error uploading image to Cloudinary: {}", image != null ? image.getOriginalFilename() : "null", e);
+                }
+            }
+        }
+        placeDTO.setImageUrl(uploadedImageUrls.isEmpty() ? null : uploadedImageUrls.get(0)); // Chỉ lấy URL đầu tiên cho imageUrl
+
+        // Gửi dữ liệu tới Python
+        List<PlaceDTO> placeData = new ArrayList<>();
+        placeData.add(placeDTO);
+        EmbeddingRequest requestBody = new EmbeddingRequest(placeData, "place");
+
+        // Log dữ liệu gửi đi
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+            logger.info("Sending request to Python: {}", jsonRequest);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize request: {}", e.getMessage());
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    "https://final-pbl-flaskapi.onrender.com/savePlace",
+                    HttpMethod.POST,
+                    requestEntity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("place_id")) {
+                Map<String, Object> successResponse = new HashMap<>();
+                successResponse.put("message", "Địa điểm với ID " + responseBody.get("place_id") + " đã được thêm thành công");
+                successResponse.put("status", HttpStatus.CREATED.value());
+                successResponse.put("place_id", ((Number) responseBody.get("place_id")).intValue());
+                return successResponse;
+            }
+            throw new RuntimeException("Không nhận được place_id từ Python service");
+        } catch (Exception e) {
+            logger.error("Error calling Python service: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Không thể lưu địa điểm và tạo embedding");
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return errorResponse;
+        }
+    }
+
+    public Map<String, Object> updatePlace(Integer placeId, PlaceDTO placeDTO, String images) {
+        String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
 
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities().stream()
@@ -883,132 +1142,108 @@ public class AdminService {
 
         if (!isAdmin) {
             logger.warn("User {} attempted to update a place but lacks ADMIN role", adminEmail);
-            throw new SecurityException("Chỉ có admin mới cập nhật được địa điểm");
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Chỉ có admin mới cập nhật được địa điểm");
+            response.put("status", HttpStatus.FORBIDDEN.value());
+            return response;
         }
 
-        // Tìm địa điểm hiện tại
-        Place existingPlace = placeRepository.findById(placeDTO.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Địa điểm với ID " + placeDTO.getId() + " không tồn tại"));
+        // Kiểm tra place tồn tại
+        Place existingPlace = placeRepository.findById(placeId)
+                .orElseThrow(() -> new IllegalStateException("Địa điểm với ID " + placeId + " không tồn tại"));
 
-        // Cập nhật thông tin
-        existingPlace.setTitle(placeDTO.getTitle());
-        existingPlace.setAddress(placeDTO.getAddress());
-        existingPlace.setRating(placeDTO.getRating() != null ? placeDTO.getRating() : 0.0f);
-        existingPlace.setReview(placeDTO.getReview() != null ? placeDTO.getReview() : 0);
-        existingPlace.setSlug(placeDTO.getSlug());
-        existingPlace.setDescription(placeDTO.getDescription());
-        existingPlace.setServices(placeDTO.getServices());
-        existingPlace.setImageUrl(placeDTO.getImageUrl());
+        // Kiểm tra các trường bắt buộc
+        if (placeDTO.getTitle() == null || placeDTO.getTitle().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Place title is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        if (placeDTO.getAddress() == null || placeDTO.getAddress().trim().isEmpty()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Place address is required");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
 
-        // Xử lý tọa độ
-        if (placeDTO.getLatitude() != null && placeDTO.getLongitude() != null) {
-            GeometryFactory geometryFactory = new GeometryFactory();
-            Coordinate coordinate = new Coordinate(placeDTO.getLongitude(), placeDTO.getLatitude());
-            Point point = geometryFactory.createPoint(coordinate);
-            point.setSRID(4326);
-            existingPlace.setCoordinates(point);
+        // Không cho phép cập nhật slug, giữ nguyên giá trị cũ
+        String originalSlug = existingPlace.getSlug();
+        if (originalSlug == null || originalSlug.trim().isEmpty()) {
+            logger.warn("Original slug is empty or null for place ID {}", placeId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Không thể cập nhật địa điểm vì slug gốc không tồn tại");
+            response.put("status", HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
+        placeDTO.setSlug(originalSlug); // Gán lại slug cũ, bỏ qua giá trị mới từ placeDTO
+
+        // Xử lý images từ chuỗi
+        List<String> imageUrls = new ArrayList<>();
+        if (images != null && !images.trim().isEmpty()) {
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                imageUrls = objectMapper.readValue(images, new TypeReference<List<String>>() {});
+                logger.info("Parsed image URLs from JSON: {}", imageUrls);
+            } catch (JsonProcessingException e) {
+                String[] urlArray = images.split(",");
+                for (String url : urlArray) {
+                    String trimmedUrl = url.trim();
+                    if (!trimmedUrl.isEmpty()) {
+                        imageUrls.add(trimmedUrl);
+                    }
+                }
+                logger.info("Parsed image URLs from comma-separated string: {}", imageUrls);
+            }
+        } else if (existingPlace.getImageUrl() != null) {
+            // Giữ nguyên imageUrl cũ nếu không có ảnh mới
+            imageUrls.add(existingPlace.getImageUrl());
+            logger.info("Using existing image URL: {}", imageUrls);
         } else {
-            existingPlace.setCoordinates(null);
+            logger.warn("No image URLs provided, and no existing image found");
         }
+        placeDTO.setImageUrl(imageUrls.isEmpty() ? null : imageUrls.get(0)); // Chỉ lấy URL đầu tiên cho imageUrl
 
-//        // Xử lý hình ảnh
-//        String uploadedImageUrl = existingPlace.getImageUrl(); // Giữ URL hiện tại nếu không upload mới
-//        if (images != null && images.length > 0) {
-//            logger.info("Received {} image files for update", images.length);
-//            for (MultipartFile image : images) {
-//                try {
-//                    if (image == null || image.isEmpty()) {
-//                        logger.warn("Skipping empty file: {}", image != null ? image.getOriginalFilename() : "null");
-//                        continue;
-//                    }
-//
-//                    String contentType = image.getContentType();
-//                    if (contentType == null || !contentType.matches("image/(jpeg|png|jpg)")) {
-//                        logger.warn("Unsupported file format for file: {}. Expected JPEG, PNG, or JPG.", image.getOriginalFilename());
-//                        continue;
-//                    }
-//
-//                    byte[] fileBytes = image.getBytes();
-//                    if (fileBytes.length == 0) {
-//                        logger.warn("File is empty after reading: {}", image.getOriginalFilename());
-//                        continue;
-//                    }
-//
-//                    String originalFilename = image.getOriginalFilename();
-//                    String publicId = originalFilename != null ?
-//                            originalFilename.replaceAll("[^a-zA-Z0-9-_]", "_") : UUID.randomUUID().toString();
-//
-//                    Map uploadResult = cloudinary.uploader().upload(fileBytes, ObjectUtils.asMap(
-//                            "folder", "places/" + (placeDTO.getSlug() != null ? placeDTO.getSlug() : "default"),
-//                            "resource_type", "image",
-//                            "public_id", publicId
-//                    ));
-//
-//                    String uploadedUrl = (String) uploadResult.get("secure_url");
-//                    uploadedImageUrl = uploadedUrl;
-//                    logger.info("Uploaded new image to Cloudinary: {}", uploadedUrl);
-//                    break; // Thoát sau khi upload file đầu tiên
-//
-//                } catch (Exception e) {
-//                    logger.error("Error uploading image to Cloudinary: {}", image != null ? image.getOriginalFilename() : "null", e);
-//                }
-//            }
-//        }
-//        existingPlace.setImageUrl(uploadedImageUrl);
-
-        // Lưu thay đổi
-        Place updatedPlace = transactionTemplate.execute(status -> {
-            try {
-                Place placeToSave = placeRepository.save(existingPlace);
-                placeRepository.flush();
-                return placeToSave;
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to update place: " + e.getMessage());
-            }
-        });
-
-        // Chuẩn bị dữ liệu cho embedding (không bao gồm latitude và longitude)
+        // Gửi dữ liệu tới Python
         List<PlaceDTO> placeData = new ArrayList<>();
-        PlaceDTO dto = new PlaceDTO();
-        dto.setId(updatedPlace.getId());
-        dto.setTitle(updatedPlace.getTitle());
-        dto.setAddress(updatedPlace.getAddress());
-        dto.setRating(updatedPlace.getRating());
-        dto.setReview(updatedPlace.getReview());
-        dto.setSlug(updatedPlace.getSlug());
-        dto.setImageUrl(updatedPlace.getImageUrl());
-        dto.setDescription(updatedPlace.getDescription());
-        dto.setServices(updatedPlace.getServices());
-        placeData.add(dto);
+        placeDTO.setId(placeId); // Thêm id để Python biết place cần cập nhật
+        placeData.add(placeDTO);
+        EmbeddingRequest requestBody = new EmbeddingRequest(placeData, "place");
 
-        if (!placeData.isEmpty()) {
-            try {
-                logger.info("Calling embedding API for updated place");
-
-                EmbeddingRequest requestBody = new EmbeddingRequest();
-                requestBody.setPlaceData(placeData);
-
-                logger.info("Sending updated place data to embedding API: {}", placeData);
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-
-                HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
-                ResponseEntity<Map<String, String>> response = restTemplate.exchange(
-                        EMBEDDING_PLACE_VECTOR,
-                        HttpMethod.POST,
-                        requestEntity,
-                        new ParameterizedTypeReference<Map<String, String>>() {}
-                );
-
-                logger.info("Embedding updated for place ID: {}", updatedPlace.getId());
-
-            } catch (Exception e) {
-                throw new RuntimeException("Không thể cập nhật địa điểm với ID " + updatedPlace.getId() + " vì không tạo được dữ liệu vector");
-            }
+        // Log dữ liệu gửi đi
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            String jsonRequest = objectMapper.writeValueAsString(requestBody);
+            logger.info("Sending update request to Python: {}", jsonRequest);
+        } catch (JsonProcessingException e) {
+            logger.error("Failed to serialize update request: {}", e.getMessage());
         }
 
-        return updatedPlace;
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    "https://final-pbl-flaskapi.onrender.com/updatePlace",
+                    HttpMethod.POST,
+                    requestEntity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("place_id")) {
+                Map<String, Object> successResponse = new HashMap<>();
+                successResponse.put("message", "Địa điểm với ID " + responseBody.get("place_id") + " đã được cập nhật thành công");
+                successResponse.put("status", HttpStatus.OK.value());
+                successResponse.put("place_id", ((Number) responseBody.get("place_id")).intValue());
+                return successResponse;
+            }
+            throw new RuntimeException("Không nhận được place_id từ Python service");
+        } catch (Exception e) {
+            logger.error("Error calling Python service for update: {}", e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Không thể cập nhật địa điểm và tạo embedding");
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return errorResponse;
+        }
     }
 
     public void deletePlace(Integer placeId) {
@@ -1070,6 +1305,7 @@ public class AdminService {
 
         return new PageImpl<>(placeDTOs, pageable, placePage.getTotalElements());
     }
+
     public Page<RoomDTO> searchRoomByName(String name, int page, int size) {
         // Tạo Pageable với page (trừ 1 vì Spring Data đếm từ 0) và size
         Pageable pageable = PageRequest.of(page - 1, size);

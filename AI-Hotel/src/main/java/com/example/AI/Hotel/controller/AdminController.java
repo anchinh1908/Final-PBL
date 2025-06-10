@@ -245,6 +245,7 @@ public class AdminController {
 //        }
 //    }
 
+    /*
     @PostMapping(value = "/add-hotels", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, Object>> addHotel(
             @RequestParam("name") String name,
@@ -289,12 +290,17 @@ public class AdminController {
             hotelDTO.setLatitude(latitude);
             hotelDTO.setLongitude(longitude);
 
+            // Kiểm tra images
+            if (images == null) {
+                images = new MultipartFile[0];
+            }
+
             // Gọi service để thêm khách sạn
-            Hotel addedHotel = adminService.addHotel(hotelDTO, images);
+            Integer hotelId = adminService.addHotel(hotelDTO, images);
 
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Khách sạn với ID " + addedHotel.getId() + " đã được thêm thành công");
-            response.put("hotelId", addedHotel.getId());
+            response.put("message", "Khách sạn với ID " + hotelId + " đã được thêm thành công");
+            response.put("hotelId", hotelId);
             response.put("status", HttpStatus.CREATED.value());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
@@ -313,11 +319,60 @@ public class AdminController {
         } catch (Exception e) {
             logger.error("Error adding hotel: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", "" + e.getMessage());
+            errorResponse.put("message", e.getMessage());
             errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+     */
+
+    @PostMapping(value = "/add-hotels", consumes = "multipart/form-data")
+    public ResponseEntity<Map<String, Object>> addHotel(
+            @RequestParam("name") String name,
+            @RequestParam("address") String address,
+            @RequestParam("district") String district,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "hotelLink", required = false) String hotelLink,
+            @RequestParam(value = "ratingStars", required = false) Integer ratingStars,
+            @RequestParam(value = "facilities", required = false) String facilities,
+            @RequestParam(value = "highlights", required = false) String highlights,
+            @RequestParam(value = "reviews", required = false) String reviews,
+            @RequestParam(value = "roomServices", required = false) String roomServices,
+            @RequestParam(value = "slug", required = false) String slug,
+            @RequestParam(value = "latitude", required = false) Double latitude,
+            @RequestParam(value = "longitude", required = false) Double longitude,
+            @RequestParam(value = "images", required = false) MultipartFile[] images) {
+
+        // Tạo HotelDTO từ các tham số
+        HotelDTO hotelDTO = new HotelDTO();
+        hotelDTO.setName(name);
+        hotelDTO.setAddress(address);
+        hotelDTO.setDistrict(district);
+        hotelDTO.setDescription(description);
+        hotelDTO.setHotelLink(hotelLink);
+        hotelDTO.setRatingStars(ratingStars != null ? ratingStars : 0);
+        hotelDTO.setFacilities(parseJsonArray(facilities));
+        hotelDTO.setHighlights(parseJsonMap(highlights));
+        hotelDTO.setReviews(parseJsonMapDouble(reviews));
+        hotelDTO.setRoomServices(parseJsonMap(roomServices));
+        hotelDTO.setSlug(slug);
+        hotelDTO.setLatitude(latitude);
+        hotelDTO.setLongitude(longitude);
+
+        // Kiểm tra images
+        if (images == null) {
+            images = new MultipartFile[0];
+        }
+
+        // Gọi service để thêm khách sạn
+        Map<String, Object> response = adminService.addHotel(hotelDTO, images);
+
+        // Trả về phản hồi trực tiếp từ service
+        return ResponseEntity
+                .status((Integer) response.get("status"))
+                .body(response);
+    }
+
 
     @GetMapping("user/{id}")
     public ResponseEntity<Map<String, Object>> getUserById(@PathVariable Integer id) {
@@ -418,36 +473,31 @@ public class AdminController {
             hotelDTO.setLatitude(latitude);
             hotelDTO.setLongitude(longitude);
 
-            // Gọi service để cập nhật khách sạn
-            Hotel updatedHotel = adminService.updateHotel(hotelId, hotelDTO);
+            // Gọi service để thêm khách sạn
+            Map<String, Object> response = adminService.updateHotel(hotelId,hotelDTO,images);
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Khách sạn với ID " + updatedHotel.getId() + " đã được cập nhật thành công ");
-            response.put("hotelId", updatedHotel.getId());
-            response.put("status", HttpStatus.OK.value());
-            return ResponseEntity.ok(response);
-
+            // Trả về phản hồi trực tiếp từ service
+            return ResponseEntity
+                    .status((Integer) response.get("status"))
+                    .body(response);
         } catch (IllegalArgumentException e) {
-            logger.warn("Failed to update hotel: {}", e.getMessage());
+            logger.error("Validation error: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("message", e.getMessage());
             errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        } catch (SecurityException e) {
-            logger.warn("Unauthorized attempt to update hotel: {}", e.getMessage());
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", e.getMessage());
-            errorResponse.put("status", HttpStatus.FORBIDDEN.value());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(errorResponse);
         } catch (Exception e) {
-            logger.error("Error updating hotel: {}", e.getMessage());
+            logger.error("Unexpected error adding hotel: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", "" + e.getMessage());
+            errorResponse.put("message", "Lỗi khi thêm khách sạn: " + e.getMessage());
             errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorResponse);
         }
-
-    }
+        }
 
     @DeleteMapping("delete-hotel/{hotelId}")
     public ResponseEntity<Map<String, Object>> deleteHotel(@PathVariable Integer hotelId) {
@@ -546,6 +596,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
     @DeleteMapping("delete-rooms")
     public ResponseEntity<Map<String, Object>> deleteRooms(
             @RequestParam("roomIds") List<Integer> roomIds) {
@@ -603,37 +654,36 @@ public class AdminController {
             roomDTO.setOriginalPrice(originalPrice);
             roomDTO.setTaxesAndFeesUnderPrice(taxesAndFeesUnderPrice);
 
-            RoomType addedRoom = adminService.addRoom(roomDTO);
+            // Gọi service để thêm phòng
+            Map<String, Object> response = adminService.addRoom(roomDTO);
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Phòng đã được thêm thành công cho khách sạn ID " + addedRoom.getHotel().getId());
-            response.put("roomId", addedRoom.getId());
-            response.put("status", HttpStatus.OK.value());
-            return ResponseEntity.ok(response);
-
+            // Trả về phản hồi trực tiếp từ service
+            return ResponseEntity
+                    .status((Integer) response.get("status"))
+                    .body(response);
         } catch (IllegalArgumentException e) {
-            logger.warn("Failed to add room: {}", e.getMessage());
+            logger.error("Validation error: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("message", e.getMessage());
             errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        } catch (SecurityException e) {
-            logger.warn("Unauthorized attempt to add room: {}", e.getMessage());
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", e.getMessage());
-            errorResponse.put("status", HttpStatus.FORBIDDEN.value());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(errorResponse);
         } catch (Exception e) {
-            logger.error("Error adding room: {}", e.getMessage());
+            logger.error("Unexpected error adding room: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", e.getMessage());
+            errorResponse.put("message", "Lỗi khi thêm phòng: " + e.getMessage());
             errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorResponse);
         }
     }
+
     @PutMapping("/update-room/{roomId}")
     public ResponseEntity<?> updateRoom(
             @PathVariable Integer roomId,
+            @RequestParam("hotelId") Integer hotelId,
             @RequestParam(value = "name", required = false) String name,
             @RequestParam(value = "numberOfGuests", required = false) Integer numberOfGuests,
             @RequestParam(value = "price", required = false) Integer price,
@@ -642,27 +692,39 @@ public class AdminController {
 
         try {
             RoomDTO roomDTO = new RoomDTO();
+            roomDTO.setHotelId(hotelId);
             roomDTO.setName(name);
             roomDTO.setNumberOfGuests(numberOfGuests);
             roomDTO.setPrice(price);
             roomDTO.setOriginalPrice(originalPrice);
             roomDTO.setTaxesAndFeesUnderPrice(taxesAndFeesUnderPrice);
 
-            RoomType updatedRoom = adminService.updateRoom(roomId, roomDTO);
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Phòng đã được cập nhật thành công");
-            response.put("roomId", updatedRoom.getId());
-            response.put("status", 200);
-            return ResponseEntity.ok(response);
+            // Gọi service để cập nhật phòng
+            Map<String, Object> response = adminService.updateRoom(roomId, roomDTO);
 
-        } catch (Exception e) {
-            logger.error("Error updating room: {}", e.getMessage());
+            // Trả về phản hồi trực tiếp từ service
+            return ResponseEntity
+                    .status((Integer) response.get("status"))
+                    .body(response);
+        } catch (IllegalArgumentException e) {
+            logger.error("Validation error: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", "Không thể cập nhật dữ liệu phòng: " + e.getMessage());
-            errorResponse.put("status", 500);
-            return ResponseEntity.status(500).body(errorResponse);
+            errorResponse.put("message", e.getMessage());
+            errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(errorResponse);
+        } catch (Exception e) {
+            logger.error("Unexpected error updating room: {}", e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Lỗi khi cập nhật phòng: " + e.getMessage());
+            errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorResponse);
         }
     }
+
 
     @DeleteMapping("/delete-room/{roomId}")
     public ResponseEntity<?> deleteRoom(@PathVariable Integer roomId) {
@@ -711,37 +773,38 @@ public class AdminController {
             placeDTO.setReview(review != null ? review : 0);
             placeDTO.setSlug(slug);
             placeDTO.setLatitude(latitude);
-            placeDTO.setLongitude(longitude); // Thêm lại latitude và longitude
+            placeDTO.setLongitude(longitude);
             placeDTO.setDescription(description);
             placeDTO.setServices(parseJsonMapList(services));
 
-            // Gọi service để thêm Place
-            Place addedPlace = adminService.addPlace(placeDTO, images);
+            // Kiểm tra images
+            if (images == null) {
+                images = new MultipartFile[0];
+            }
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Địa điểm với ID " + addedPlace.getId() + " đã được thêm thành công");
-            response.put("placeId", addedPlace.getId());
-            response.put("status", HttpStatus.CREATED.value());
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            // Gọi service để thêm địa điểm
+            Map<String, Object> response = adminService.addPlace(placeDTO, images);
 
+            // Trả về phản hồi trực tiếp từ service
+            return ResponseEntity
+                    .status((Integer) response.get("status"))
+                    .body(response);
         } catch (IllegalArgumentException e) {
-            logger.warn("Failed to add place: {}", e.getMessage());
+            logger.error("Validation error: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("message", e.getMessage());
             errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        } catch (SecurityException e) {
-            logger.warn("Unauthorized attempt to add place: {}", e.getMessage());
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", e.getMessage());
-            errorResponse.put("status", HttpStatus.FORBIDDEN.value());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(errorResponse);
         } catch (Exception e) {
-            logger.error("Error adding place: {}", e.getMessage());
+            logger.error("Unexpected error adding place: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", e.getMessage());
+            errorResponse.put("message", "Lỗi khi thêm địa điểm: " + e.getMessage());
             errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorResponse);
         }
     }
 
@@ -781,33 +844,29 @@ public class AdminController {
             placeDTO.setServices(parseJsonMapList(services));
             placeDTO.setImageUrl(images);
 
-            // Gọi service để cập nhật Place
-            Place updatedPlace = adminService.updatePlace(placeDTO);
+            // Gọi service để cập nhật địa điểm
+            Map<String, Object> response = adminService.updatePlace(placeId, placeDTO, images);
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Địa điểm với ID " + updatedPlace.getId() + " đã được cập nhật thành công");
-            response.put("placeId", updatedPlace.getId());
-            response.put("status", HttpStatus.OK.value());
-            return ResponseEntity.ok(response);
-
+            // Trả về phản hồi trực tiếp từ service
+            return ResponseEntity
+                    .status((Integer) response.get("status"))
+                    .body(response);
         } catch (IllegalArgumentException e) {
-            logger.warn("Failed to update place: {}", e.getMessage());
+            logger.error("Validation error: {}", e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("message", e.getMessage());
             errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-        } catch (SecurityException e) {
-            logger.warn("Unauthorized attempt to update place: {}", e.getMessage());
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", e.getMessage());
-            errorResponse.put("status", HttpStatus.FORBIDDEN.value());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(errorResponse);
         } catch (Exception e) {
-            logger.error("Error updating place: {}", e.getMessage());
+            logger.error("Unexpected error updating place: {}", e.getMessage(), e);
             Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", e.getMessage());
+            errorResponse.put("message", "Lỗi khi cập nhật địa điểm: " + e.getMessage());
             errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(errorResponse);
         }
     }
 
@@ -828,15 +887,6 @@ public class AdminController {
         }
     }
 
-//    @GetMapping("/count-hotels")
-//    public ResponseEntity<List<String>> getNumbersCountOfHotels() {
-//        try {
-//            List<String> totalHotels = hotelDataService.getNumbersCountOfHotels();
-//            return ResponseEntity.ok(totalHotels);
-//        } catch (Exception e) {
-//            return ResponseEntity.status(500).body(Collections.singletonList("Lỗi khi đếm tổng số khách sạn: " + e.getMessage()));
-//        }
-//    }
     @GetMapping("/count-number")
     public ResponseEntity<Map<String, Object>> getNumbersCountOfHotels() {
         Map<String, Object> response = new HashMap<>();
