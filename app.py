@@ -436,12 +436,16 @@ def update_place():
     place_id = place_data.get("id")
 
     # Xử lý image_urls (đã được gửi từ Java)
-    image_urls = place_data.get("imageUrl", [])
-    if isinstance(image_urls, str):
-        try:
-            image_urls = json.loads(image_urls)
-        except json.JSONDecodeError:
-            image_urls = [url.strip() for url in image_urls.split(",") if url.strip()]
+    image_urls = place_data.get("imageUrl", None)  # Lấy giá trị, mặc định None nếu không có
+    if image_urls is not None:
+        image_urls = image_urls.strip()  # Loại bỏ khoảng trắng đầu/cuối
+        if not image_urls:  # Nếu chuỗi rỗng sau khi strip
+            image_urls = None
+    else:
+        image_urls = None  # Giữ None nếu không có giá trị
+
+    # Log để kiểm tra
+    print(f"Processed image_urls: {image_urls}")
 
     place_dict = {
         "id": place_id,
@@ -450,10 +454,11 @@ def update_place():
         "address": place_data.get("address"),
         "review": place_data.get("review", 0),
         "slug": place_data.get("slug", ""),  # Sẽ giữ nguyên từ Java
-        "image_url": json.dumps(image_urls if image_urls else place_data.get("imageUrl", [])),
+        "image_url": place_data.get("imageUrl", ""),
         "description": place_data.get("description", ""),
         "services": json.dumps(place_data.get("services", []))
     }
+    
     if place_data.get("latitude") and place_data.get("longitude"):
         place_dict["coordinates"] = f"SRID=4326;POINT({place_data['longitude']} {place_data['latitude']})"
 
