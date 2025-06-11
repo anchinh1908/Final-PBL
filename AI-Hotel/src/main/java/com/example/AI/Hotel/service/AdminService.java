@@ -58,9 +58,15 @@ public class AdminService {
     private final RestTemplate restTemplate;
     private final TransactionTemplate transactionTemplate;
     private final JdbcTemplate jdbcTemplate;
-    private static final String EMBEDDING_HOTEL_VECTOR = "https://anchinh-embeddingapi.hf.space/embedHotel";
-    private static final String EMBEDDING_ROOM_VECTOR = "https://anchinh-embeddingapi.hf.space/embedRoom";
-    private static final String EMBEDDING_PLACE_VECTOR = "https://anchinh-embeddingapi.hf.space/embedPlace";
+//    private static final String EMBEDDING_HOTEL_VECTOR = "https://anchinh-embeddingapi.hf.space/embedHotel";
+//    private static final String EMBEDDING_ROOM_VECTOR = "https://anchinh-embeddingapi.hf.space/embedRoom";
+//    private static final String EMBEDDING_PLACE_VECTOR = "https://anchinh-embeddingapi.hf.space/embedPlace";
+    private static final String SAVE_HOTEL ="https://final-pbl-flaskapi.onrender.com/saveHotel";
+    private static final String UPDATE_HOTEL ="https://final-pbl-flaskapi.onrender.com/updateHotel";
+    private static final String SAVE_PLACE ="https://final-pbl-flaskapi.onrender.com/savePlace";
+    private static final String UPDATE_PLACE ="https://final-pbl-flaskapi.onrender.com/updatePlace";
+    private static final String SAVE_ROOM ="https://final-pbl-flaskapi.onrender.com/saveRoom";
+    private static final String UPDATE_ROOM ="https://final-pbl-flaskapi.onrender.com/updateRoom";
     private final HotelEmbeddingRepository hotelEmbeddingRepository;
 
 
@@ -135,117 +141,6 @@ public class AdminService {
         userRepository.restoreById(userId);
         logger.info("Admin {} restored user with ID {}", adminEmail, userId);
     }
-    /*
-
-    public Integer addHotel(HotelDTO hotelDTO, MultipartFile[] images) {
-        String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new IllegalStateException("Không tìm thấy Admin"));
-
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
-                .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!isAdmin) {
-            logger.warn("User {} attempted to add a hotel but lacks ADMIN role", adminEmail);
-            throw new SecurityException("Chỉ có admin mới thêm được khách sạn");
-        }
-
-        // Kiểm tra các trường bắt buộc
-        if (hotelDTO.getName() == null || hotelDTO.getName().trim().isEmpty()) {
-            throw new IllegalArgumentException("Hotel name is required");
-        }
-        if (hotelDTO.getAddress() == null || hotelDTO.getAddress().trim().isEmpty()) {
-            throw new IllegalArgumentException("Hotel address is required");
-        }
-        if (hotelDTO.getDistrict() == null || hotelDTO.getDistrict().trim().isEmpty()) {
-            throw new IllegalArgumentException("Hotel district is required");
-        }
-
-        // Xử lý upload hình ảnh
-        List<String> uploadedImageUrls = new ArrayList<>();
-        if (images != null && images.length > 0) {
-            logger.info("Received {} image files", images.length);
-            for (MultipartFile image : images) {
-                try {
-                    if (image == null || image.isEmpty()) {
-                        logger.warn("Skipping empty file: {}", image != null ? image.getOriginalFilename() : "null");
-                        continue;
-                    }
-                    String contentType = image.getContentType();
-                    if (contentType == null || !contentType.matches("image/(jpeg|png|jpg)")) {
-                        logger.warn("Unsupported file format for file: {}. Expected JPEG, PNG, or JPG.", image.getOriginalFilename());
-                        continue;
-                    }
-                    byte[] fileBytes = image.getBytes();
-                    if (fileBytes.length == 0) {
-                        logger.warn("File is empty after reading: {}", image.getOriginalFilename());
-                        continue;
-                    }
-                    String originalFilename = image.getOriginalFilename();
-                    String publicId = originalFilename != null ?
-                            originalFilename.replaceAll("[^a-zA-Z0-9-_]", "_") : UUID.randomUUID().toString();
-                    Map uploadResult = cloudinary.uploader().upload(fileBytes, ObjectUtils.asMap(
-                            "folder", "hotels/" + (hotelDTO.getSlug() != null ? hotelDTO.getSlug() : "default"),
-                            "resource_type", "image",
-                            "public_id", publicId
-                    ));
-                    String uploadedUrl = (String) uploadResult.get("secure_url");
-                    uploadedImageUrls.add(uploadedUrl);
-                    logger.info("Uploaded image to Cloudinary: {}", uploadedUrl);
-                } catch (Exception e) {
-                    logger.error("Error uploading image to Cloudinary: {}", image != null ? image.getOriginalFilename() : "null", e);
-                }
-            }
-        }
-        logger.info("Uploaded image URLs: {}", uploadedImageUrls);
-        hotelDTO.setImageUrls(uploadedImageUrls.isEmpty() ? null : uploadedImageUrls);
-
-        // Gửi dữ liệu tới Python
-        List<HotelDTO> hotelData = new ArrayList<>();
-        hotelData.add(hotelDTO);
-        EmbeddingRequest requestBody = new EmbeddingRequest(hotelData, "hotel");
-
-        // Log dữ liệu gửi đi
-        ObjectMapper objectMapper = new ObjectMapper();
-        try {
-            String jsonRequest = objectMapper.writeValueAsString(requestBody);
-            logger.info("Sending request to Python: {}", jsonRequest);
-        } catch (JsonProcessingException e) {
-            logger.error("Failed to serialize request: {}", e.getMessage());
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
-        try {
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    "http://127.0.0.1:8001/saveHotel",
-                    HttpMethod.POST,
-                    requestEntity,
-                    new ParameterizedTypeReference<Map<String, Object>>() {
-                    }
-            );
-            Map<String, Object> responseBody = response.getBody();
-            if (responseBody != null && responseBody.containsKey("hotel_id")) {
-                return ((Number) responseBody.get("hotel_id")).intValue();
-            }
-            throw new RuntimeException("Không nhận được hotel_id từ Python service");
-        }catch (HttpClientErrorException e) {
-            if (e.getStatusCode().value() == 409) {
-                String slug = hotelDTO.getSlug() != null ? hotelDTO.getSlug() : "null";
-                logger.error("Slug conflict detected - Slug: {}, Error: {}", slug, e.getResponseBodyAsString());
-                throw new IllegalStateException("Slug '" + slug + "' đã tồn tại", e);
-            }
-            logger.error("Error calling Python service: {}", e.getMessage());
-            throw new RuntimeException("Không thể lưu khách sạn và tạo embedding", e);
-        }  catch (Exception e) {
-            logger.error("Error calling Python service: {}", e.getMessage());
-            throw new RuntimeException("Không thể lưu khách sạn và tạo embedding", e);
-        }
-    }
-
-     */
 
     public Map<String, Object> addHotel(HotelDTO hotelDTO, MultipartFile[] images) {
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -352,7 +247,8 @@ public class AdminService {
         HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
         try {
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    "https://final-pbl-flaskapi.onrender.com/saveHotel",
+//                    "http://127.0.0.1:8001/saveHotel",
+                    SAVE_HOTEL,
                     HttpMethod.POST,
                     requestEntity,
                     new ParameterizedTypeReference<Map<String, Object>>() {}
@@ -473,7 +369,8 @@ public class AdminService {
         HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
         try {
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    "https://final-pbl-flaskapi.onrender.com/updateHotel",
+//                    "http://127.0.0.1:8001/updateHotel",
+                    UPDATE_HOTEL,
                     HttpMethod.POST,
                     requestEntity,
                     new ParameterizedTypeReference<Map<String, Object>>() {}
@@ -795,7 +692,8 @@ public class AdminService {
         HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
         try {
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    "https://final-pbl-flaskapi.onrender.com/saveRoom",
+//                    "http://127.0.0.1:8001/saveRoom",
+                    SAVE_ROOM,
                     HttpMethod.POST,
                     requestEntity,
                     new ParameterizedTypeReference<Map<String, Object>>() {}
@@ -880,7 +778,8 @@ public class AdminService {
         HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
         try {
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    "https://final-pbl-flaskapi.onrender.com/updateRoom",
+//                    "http://127.0.0.1:8001/updateRoom",
+                    UPDATE_ROOM,
                     HttpMethod.POST,
                     requestEntity,
                     new ParameterizedTypeReference<Map<String, Object>>() {}
@@ -934,145 +833,6 @@ public class AdminService {
         });
     }
 
-    /*
-    public Place addPlace(PlaceDTO placeDTO, MultipartFile[] images) {
-        String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new IllegalStateException("Admin not found"));
-
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication()
-                .getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!isAdmin) {
-            logger.warn("User {} attempted to add a place but lacks ADMIN role", adminEmail);
-            throw new SecurityException("Chỉ có admin mới thêm được địa điểm");
-        }
-
-        Place place = new Place();
-        place.setTitle(placeDTO.getTitle());
-        place.setAddress(placeDTO.getAddress());
-        place.setRating(placeDTO.getRating() != null ? placeDTO.getRating() : 0.0f);
-        place.setReview(placeDTO.getReview() != null ? placeDTO.getReview() : 0);
-        place.setSlug(placeDTO.getSlug());
-        place.setDescription(placeDTO.getDescription());
-        place.setServices(placeDTO.getServices());
-
-        // Xử lý tọa độ
-        if (placeDTO.getLatitude() != null && placeDTO.getLongitude() != null) {
-            GeometryFactory geometryFactory = new GeometryFactory();
-            Coordinate coordinate = new Coordinate(placeDTO.getLongitude(), placeDTO.getLatitude());
-            Point point = geometryFactory.createPoint(coordinate);
-            point.setSRID(4326);
-            place.setCoordinates(point);
-        } else {
-            place.setCoordinates(null);
-        }
-
-        String uploadedImageUrl = null;
-        if (images != null && images.length > 0) {
-            logger.info("Received {} image files", images.length);
-            for (MultipartFile image : images) {
-                try {
-                    if (image == null || image.isEmpty()) {
-                        logger.warn("Skipping empty file: {}", image != null ? image.getOriginalFilename() : "null");
-                        continue;
-                    }
-
-                    String contentType = image.getContentType();
-                    if (contentType == null || !contentType.matches("image/(jpeg|png|jpg)")) {
-                        logger.warn("Unsupported file format for file: {}. Expected JPEG, PNG, or JPG.", image.getOriginalFilename());
-                        continue;
-                    }
-
-                    byte[] fileBytes = image.getBytes();
-                    if (fileBytes.length == 0) {
-                        logger.warn("File is empty after reading: {}", image.getOriginalFilename());
-                        continue;
-                    }
-
-                    String originalFilename = image.getOriginalFilename();
-                    String publicId = originalFilename != null ?
-                            originalFilename.replaceAll("[^a-zA-Z0-9-_]", "_") : UUID.randomUUID().toString();
-
-                    Map uploadResult = cloudinary.uploader().upload(fileBytes, ObjectUtils.asMap(
-                            "folder", "places/" + (placeDTO.getSlug() != null ? placeDTO.getSlug() : "default"),
-                            "resource_type", "image",
-                            "public_id", publicId
-                    ));
-
-                    String uploadedUrl = (String) uploadResult.get("secure_url");
-                    uploadedImageUrl = uploadedUrl;
-                    logger.info("Uploaded image to Cloudinary: {}", uploadedUrl);
-                    break; // Thoát sau khi upload file đầu tiên
-
-                } catch (Exception e) {
-                    logger.error("Error uploading image to Cloudinary: {}", image != null ? image.getOriginalFilename() : "null", e);
-                }
-            }
-        }
-        place.setImageUrl(uploadedImageUrl);
-
-        Place savedPlace = transactionTemplate.execute(status -> {
-            try {
-                Place placeToSave = placeRepository.save(place);
-                placeRepository.flush();
-                return placeToSave;
-            } catch (DataIntegrityViolationException e) {
-                if (e.getMessage().contains("places_slug_key")) {
-                    throw new DuplicateSlugException("Địa điểm với slug '" + placeDTO.getSlug() + "' đã tồn tại");
-                }
-                throw new RuntimeException("Failed to save place: " + e.getMessage());
-            }
-        });
-
-        List<PlaceDTO> placeData = new ArrayList<>();
-        PlaceDTO dto = new PlaceDTO();
-        dto.setId(savedPlace.getId());
-        dto.setTitle(savedPlace.getTitle());
-        dto.setAddress(savedPlace.getAddress());
-        dto.setRating(savedPlace.getRating());
-        dto.setReview(savedPlace.getReview());
-        dto.setSlug(savedPlace.getSlug());
-//        dto.setLatitude(savedPlace.getLatitude());
-//        dto.setLongitude(savedPlace.getLongitude());
-        dto.setImageUrl(savedPlace.getImageUrl());
-        dto.setDescription(savedPlace.getDescription());
-        dto.setServices(savedPlace.getServices());
-        placeData.add(dto);
-
-        if (!placeData.isEmpty()) {
-            try {
-                logger.info("Calling embedding API for place");
-
-                EmbeddingRequest requestBody = new EmbeddingRequest();
-                requestBody.setPlaceData(placeData);
-
-                logger.info("Sending place data to embedding API: {}", placeData);
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-
-                HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
-                ResponseEntity<Map<String, String>> response = restTemplate.exchange(
-                        EMBEDDING_PLACE_VECTOR,
-                        HttpMethod.POST,
-                        requestEntity,
-                        new ParameterizedTypeReference<Map<String, String>>() {}
-                );
-
-                logger.info("Embedding created for place ID: {}", savedPlace.getId());
-
-            } catch (Exception e) {
-                throw new RuntimeException("Không thể thêm được địa điểm với ID " + savedPlace.getId() + " vì không tạo được dữ liệu vector");
-            }
-        }
-
-        return savedPlace;
-    }
-
-
-     */
 
     public Map<String, Object> addPlace(PlaceDTO placeDTO, MultipartFile[] images) {
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -1172,7 +932,8 @@ public class AdminService {
         HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
         try {
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    "https://final-pbl-flaskapi.onrender.com/savePlace",
+//                    "http://127.0.0.1:8001/savePlace",
+                    SAVE_PLACE,
                     HttpMethod.POST,
                     requestEntity,
                     new ParameterizedTypeReference<Map<String, Object>>() {}
@@ -1267,6 +1028,22 @@ public class AdminService {
         }
         placeDTO.setImageUrl(imageUrls.isEmpty() ? null : imageUrls.get(0)); // Chỉ lấy URL đầu tiên cho imageUrl
 
+        // Xử lý images thành String
+//        String imageUrl = null;
+//        if (images != null && !images.trim().isEmpty()) {
+//            // Lấy URL đầu tiên nếu chuỗi chứa nhiều URL (tách bằng dấu phẩy)
+//            String trimmedImages = images.trim();
+//            imageUrl = trimmedImages.contains(",") ? trimmedImages.split(",")[0].trim() : trimmedImages;
+//            logger.info("Parsed image URL from string: {}", imageUrl);
+//        } else if (existingPlace.getImageUrl() != null) {
+//            // Giữ nguyên imageUrl cũ nếu không có ảnh mới
+//            imageUrl = existingPlace.getImageUrl();
+//            logger.info("Using existing image URL: {}", imageUrl);
+//        } else {
+//            logger.warn("No image URL provided, and no existing image found");
+//        }
+//        placeDTO.setImageUrl(imageUrl); // Gán trực tiếp String cho imageUrl
+
         // Gửi dữ liệu tới Python
         List<PlaceDTO> placeData = new ArrayList<>();
         placeDTO.setId(placeId); // Thêm id để Python biết place cần cập nhật
@@ -1287,7 +1064,8 @@ public class AdminService {
         HttpEntity<EmbeddingRequest> requestEntity = new HttpEntity<>(requestBody, headers);
         try {
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    "https://final-pbl-flaskapi.onrender.com/updatePlace",
+//                    "http://127.0.0.1:8001/updatePlace",
+                    UPDATE_PLACE,
                     HttpMethod.POST,
                     requestEntity,
                     new ParameterizedTypeReference<Map<String, Object>>() {}
