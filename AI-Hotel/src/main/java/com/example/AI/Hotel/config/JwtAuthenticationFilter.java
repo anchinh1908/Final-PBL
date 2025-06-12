@@ -33,17 +33,67 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         // Bỏ qua các đường dẫn không yêu cầu xác thực
         boolean isExcluded = uri.startsWith("/auth") || uri.startsWith("/auth/register") ||uri.startsWith("/login/oauth2") || uri.startsWith("/getAll") || uri.startsWith("/hotels")  || uri.startsWith("/places") || uri.startsWith("/rooms");
-        return isExcluded;
+        // Bỏ qua /search nếu không có token, nhưng vẫn cho phép xử lý token nếu có
+        return isExcluded || uri.equals("/search");
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        if (shouldNotFilter(request)) {
+
+        String uri = request.getRequestURI();
+//        logger.debug("Processing request for URI: {}", uri);
+
+        // Đặc biệt xử lý /search: Cho phép đi qua nếu không có token
+        if (uri.equals("/search")) {
+            String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                String token = header.substring(7);
+                System.out.println("Received token: " + token);
+
+                try {
+                    if (jwtUtil.validateToken(token)) {
+                        String email = jwtUtil.getEmailFromToken(token);
+                        System.out.println("Extracted email from token: " + email);
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                        System.out.println("UserDetails loaded: " + userDetails);
+                        if (userDetails == null) {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.getWriter().write("{\"message\":\"User not found for email: " + email + "\", \"status\":401}");
+                            return;
+                        }
+
+                        if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.getWriter().write("{\"message\":\"Account is disabled\", \"status\":401}");
+                            return;
+                        }
+
+                        var authentication = new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                        System.out.println("Authenticated user: " + email + ", authorities: " + userDetails.getAuthorities());
+                    } else {
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.getWriter().write("{\"message\":\"Invalid token\", \"status\":401}");
+                        return;
+                    }
+                } catch (Exception e) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"message\":\"Authentication failed: " + e.getMessage() + "\", \"status\":401}");
+                    return;
+                }
+            } else {
+//                logger.debug("No token provided for URI: {}, proceeding without authentication", uri);
+                // Không trả về 401, tiếp tục chuỗi lọc
+            }
+        } else if (shouldNotFilter(request)) {
             chain.doFilter(request, response);
             return;
         }
 
+        // Xử lý các URI khác (nếu không bị shouldNotFilter)
         String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -90,4 +140,60 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         chain.doFilter(request, response);
     }
+
+//    @Override
+//    protected void doFilterInternal2(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+//            throws ServletException, IOException {
+//
+//        if (shouldNotFilter(request)) {
+//            chain.doFilter(request, response);
+//            return;
+//        }
+//
+//        String header = request.getHeader("Authorization");
+//        if (header == null || !header.startsWith("Bearer ")) {
+//            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+//            response.getWriter().write("{\"message\":\"Missing or invalid token format\", \"status\":401}");
+//            return;
+//        }
+//
+//        String token = header.substring(7);
+//        System.out.println("Received token: " + token);
+//
+//        try {
+//            if (jwtUtil.validateToken(token)) {
+//                String email = jwtUtil.getEmailFromToken(token);
+//                System.out.println("Extracted email from token: " + email);
+//                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+//                System.out.println("UserDetails loaded: " + userDetails);
+//                if (userDetails == null) {
+//                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+//                    response.getWriter().write("{\"message\":\"User not found for email: " + email + "\", \"status\":401}");
+//                    return;
+//                }
+//
+//                if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
+//                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+//                    response.getWriter().write("{\"message\":\"Account is disabled\", \"status\":401}");
+//                    return;
+//                }
+//
+//                var authentication = new UsernamePasswordAuthenticationToken(
+//                        userDetails, null, userDetails.getAuthorities());
+//                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+//                SecurityContextHolder.getContext().setAuthentication(authentication);
+//                System.out.println("Authenticated user: " + email + ", authorities: " + userDetails.getAuthorities());
+//            } else {
+//                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+//                response.getWriter().write("{\"message\":\"Invalid token\", \"status\":401}");
+//                return;
+//            }
+//        } catch (Exception e) {
+//            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+//            response.getWriter().write("{\"message\":\"Authentication failed: " + e.getMessage() + "\", \"status\":401}");
+//            return;
+//        }
+//
+//        chain.doFilter(request, response);
+//    }
 }

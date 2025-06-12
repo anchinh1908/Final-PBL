@@ -30,6 +30,6 @@ public class SearchHistory {
     public SearchHistory(User user, String queryHistory) {
         this.user = user;
         this.queryHistory = queryHistory;
-        this.searchDate = LocalDateTime.now();
+//        this.searchDate = LocalDateTime.now();
     }
 }

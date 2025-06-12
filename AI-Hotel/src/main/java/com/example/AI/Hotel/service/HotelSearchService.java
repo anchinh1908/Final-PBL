@@ -1,10 +1,12 @@
 package com.example.AI.Hotel.service;
 
+import com.example.AI.Hotel.config.JwtUtil;
 import com.example.AI.Hotel.dto.*;
 import com.example.AI.Hotel.model.*;
 import com.example.AI.Hotel.repository.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -14,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +45,7 @@ public class HotelSearchService {
     private final UserRepository userRepository;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final JwtUtil jwtUtil;
 
     @Autowired
     public HotelSearchService(
@@ -52,52 +56,117 @@ public class HotelSearchService {
             PlaceEmbeddingRepository placeEmbeddingRepository,
             SearchHistoryRepository searchHistoryRepository,
             UserRepository userRepository,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            JwtUtil jwtUtil
     ) {
         this.hotelRepository = hotelRepository;
         this.roomRepository = roomRepository;
         this.placeRepository = placeRepository;
         this.searchHistoryRepository = searchHistoryRepository;
         this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
         this.restTemplate = new RestTemplate();
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
     }
 
     @Transactional
-    public List<HotelSearchResponse> searchHotels(@Valid HotelSearchRequest request) {
-        logger.info("Processing search query: {}", request.getQuery());
+    public List<HotelSearchResponse> searchHotels(@Valid HotelSearchRequest request, HttpServletRequest httpRequest) {
+        log.info("Processing search query: {}", request.getQuery());
 
         try {
-            // Gọi API Python để tạo embedding
             float[] queryEmbedding = getQueryEmbedding(request.getQuery());
-            logger.debug("Query embedding created, length: {}", queryEmbedding.length);
+            log.debug("Query embedding created, length: {}", queryEmbedding.length);
 
-            // Tìm các khách sạn và phòng phù hợp
             List<HotelSearchResponse> results = findMatchingHotelsWithRooms(queryEmbedding);
-
-            // Sắp xếp theo độ tương đồng của khách sạn
             results.sort(Comparator.comparingDouble(HotelSearchResponse::getSimilarityScore).reversed());
-            logger.info("Found {} matching hotels after room filtering", results.size());
+            log.info("Found {} matching hotels after room filtering", results.size());
 
-            // Lưu lịch sử tìm kiếm chỉ khi user đã đăng nhập
-            String email = SecurityContextHolder.getContext().getAuthentication() != null
-                    ? SecurityContextHolder.getContext().getAuthentication().getName()
-                    : null;
-            if (email != null && !email.trim().isEmpty() && !email.equals("anonymousUser")) {
-                User user = userRepository.findByEmail(email)
-                        .orElseThrow(() -> new IllegalStateException("Không tìm thấy người dùng với email: " + email));
-                saveSearchHistory(request.getQuery(), user);
-            } else {
-                logger.warn("Skipping search history save: No authenticated user or anonymous user detected");
-            }
+            // Kiểm tra và lưu lịch sử chỉ khi có token hợp lệ
+            processSearchHistory(httpRequest, request);
 
             return results;
-
         } catch (Exception e) {
-            logger.error("Error processing search query: {}", request.getQuery(), e);
+            log.error("Error processing search query: {}", request.getQuery(), e);
             throw new RuntimeException("Failed to process search query", e);
         }
     }
+
+    private void processSearchHistory(HttpServletRequest httpRequest, HotelSearchRequest request) {
+        String header = httpRequest.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            if (jwtUtil.validateToken(token)) {
+                String email = jwtUtil.getEmailFromToken(token);
+                log.info("Authenticated email from token -> {}", email);
+                User user = userRepository.findByEmail(email).orElse(null);
+                if (user != null) {
+                    saveSearchHistory(request.getQuery(), user);
+                    log.info("Search history saved for user: {}, query: {}", email, request.getQuery());
+                } else {
+                    log.warn("Skipping search history save: User with email {} not found", email);
+                }
+            } else {
+                log.warn("Invalid token, skipping search history save");
+            }
+        } else {
+            log.info("No token provided, skipping search history save");
+        }
+    }
+
+//    @Transactional
+//    public List<HotelSearchResponse> searchHotels(@Valid HotelSearchRequest request) {
+//        logger.info("Processing search query: {}", request.getQuery());
+//
+//        try {
+//            // Gọi API Python để tạo embedding
+//            float[] queryEmbedding = getQueryEmbedding(request.getQuery());
+//            logger.debug("Query embedding created, length: {}", queryEmbedding.length);
+//
+//            // Tìm các khách sạn và phòng phù hợp
+//            List<HotelSearchResponse> results = findMatchingHotelsWithRooms(queryEmbedding);
+//
+//            // Sắp xếp theo độ tương đồng của khách sạn
+//            results.sort(Comparator.comparingDouble(HotelSearchResponse::getSimilarityScore).reversed());
+//            logger.info("Found {} matching hotels after room filtering", results.size());
+//
+//            // Lưu lịch sử tìm kiếm chỉ khi user đã đăng nhập
+////            String email = SecurityContextHolder.getContext().getAuthentication() != null
+////                    ? SecurityContextHolder.getContext().getAuthentication().getName()
+////                    : null;
+////            if (email != null && !email.trim().isEmpty() && !email.equals("anonymousUser")) {
+////                User user = userRepository.findByEmail(email)
+////                        .orElseThrow(() -> new IllegalStateException("Không tìm thấy người dùng với email: " + email));
+////                saveSearchHistory(request.getQuery(), user);
+////            } else {
+////                logger.warn("Skipping search history save: No authenticated user or anonymous user detected");
+////            }
+////
+////            return results;
+//            // Lưu lịch sử tìm kiếm nếu user đã được xác thực và email tồn tại
+//            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//            if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
+//                String email = authentication.getName();
+//                User user = userRepository.findByEmail(email).orElse(null);
+//                logger.info("email -> " + email);
+//                if (user != null) {
+//                    saveSearchHistory(request.getQuery(), user);
+//                    logger.info("Search history saved for user: {}, query: {}", email, request.getQuery());
+//                } else {
+//                    logger.warn("Skipping search history save: User with email {} not found", email);
+//                }
+//            } else {
+//                logger.warn("Skipping search history save: No authenticated user or anonymous user detected. Authentication: {}, IsAuthenticated: {}",
+//                        authentication != null ? authentication.getName() : "null",
+//                        authentication != null ? authentication.isAuthenticated() : false);
+//            }
+//
+//            return results;
+//
+//        } catch (Exception e) {
+//            logger.error("Error processing search query: {}", request.getQuery(), e);
+//            throw new RuntimeException("Failed to process search query", e);
+//        }
+//    }
 
     private List<HotelSearchResponse> findMatchingHotelsWithRooms(float[] queryEmbedding) {
         List<HotelSearchResponse> responses = new ArrayList<>();

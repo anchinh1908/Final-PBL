@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/hotels/**").permitAll()
                         .requestMatchers("/places/**").permitAll()
                         .requestMatchers("/getAll/**").permitAll()
+                        .requestMatchers("/search/**").permitAll()
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
