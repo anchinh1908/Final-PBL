@@ -157,14 +157,14 @@ public class UserController {
                 // Kiểm tra định dạng file
                 String contentType = avatar.getContentType();
                 if (contentType == null || !(contentType.equals("image/jpeg") || contentType.equals("image/png") || contentType.equals("image/jpg"))) {
-                    response.put("message", "Only image files (jpg, png, jpeg) are allowed");
+                    response.put("message", "Chỉ có các file (jpg, png, jpeg) mới dùng được");
                     response.put("status", 400);
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
                 }
 
                 // Kiểm tra kích thước file
                 if (avatar.getSize() > 10 * 1024 * 1024) { // Giới hạn 10MB
-                    response.put("message", "File size must be less than 10MB");
+                    response.put("message", "Dung lượng file phải lớn hơn 10MB");
                     response.put("status", 400);
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
                 }
@@ -411,17 +411,17 @@ public class UserController {
             userService.updatePassword(email, request.getOldPassword(), request.getNewPassword());
 
             response.put("status", HttpStatus.OK.value());
-            response.put("message", "Password updated successfully");
+            response.put("message", "Đã cập nhật mật khẩu thành công ");
             return ResponseEntity.ok(response);
 
         } catch (IllegalArgumentException e) {
-            logger.warn("Failed to update password for user: {}", e.getMessage());
+            logger.warn("Cập nhật mật khẩu thất bại: {}", e.getMessage());
             response.put("status", HttpStatus.BAD_REQUEST.value());
             response.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
         } catch (SecurityException e) {
-            logger.warn("Unauthorized attempt to update password: {}", e.getMessage());
+            logger.warn("Không có quyền để cập nhật khách sạn: {}", e.getMessage());
             response.put("status", HttpStatus.UNAUTHORIZED.value());
             response.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
@@ -574,14 +574,14 @@ public class UserController {
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy người dùng"));
 
         Hotel hotel = hotelRepository.findById(hotelId)
-                .orElseThrow(() -> new IllegalStateException("Hotel not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy khach sạn"));
 
         Optional<Wishlist> existingWishlist = wishlistRepository.findByUserIdAndHotelId(user.getId(), hotelId);
         if (existingWishlist.isPresent()) {
-            response.put("message", "Hotel is already in your wishlist");
+            response.put("message", " Khách sạn đã tồn tại trong danh sách ");
             response.put("status", HttpStatus.BAD_REQUEST.value());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
@@ -591,7 +591,7 @@ public class UserController {
         wishlist.setHotel(hotel);
         wishlistRepository.save(wishlist);
 
-        response.put("message", "Hotel added to wishlist successfully");
+        response.put("message", "Khách sạn đã được thêm vào yêu thích thành công ");
         response.put("status", HttpStatus.OK.value());
         return ResponseEntity.ok(response);
     }
@@ -602,18 +602,18 @@ public class UserController {
 
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy người dùng"));
 
         Optional<Wishlist> wishlist = wishlistRepository.findByUserIdAndHotelId(user.getId(), hotelId);
         if (wishlist.isEmpty()) {
-            response.put("message", "Hotel not found in your wishlist");
+            response.put("message", " Không tìm thấy khách sạn trong danh sách ");
             response.put("status", HttpStatus.NOT_FOUND.value());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
 
         wishlistRepository.delete(wishlist.get());
 
-        response.put("message", "Hotel removed from wishlist successfully");
+        response.put("message", " Khách sạn đã được xóa khỏi danh sách thành công");
         response.put("status", HttpStatus.OK.value());
         return ResponseEntity.ok(response);
     }

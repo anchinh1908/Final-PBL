@@ -21,7 +21,7 @@ public class RoomEmbedding {
     @JoinColumn(name = "room_id", nullable = false)
     private RoomType room;
 
-    @Convert(converter = StringVectorConverter.class)
+//    @Convert(converter = StringVectorConverter.class)
     @Column(name = "embedding", columnDefinition = "vector(3072)")
     private String embedding;
 }

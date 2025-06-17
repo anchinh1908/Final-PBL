@@ -96,6 +96,8 @@ public interface HotelRepository extends JpaRepository<Hotel, Integer> {
 
     boolean existsBySlug(String slug);
 
+    // CAST(:queryEmbedding AS vector): Chuyển đổi tham số queryEmbedding (kiểu String) thành kiểu vector để so sánh.
+    // (1 - (he.embedding <=> CAST(:queryEmbedding AS vector))): Tính độ tương đồng cosine (1 - khoảng cách cosine).
     @Query(value = """
         SELECT 
             he.hotel_id,
@@ -113,7 +115,7 @@ public interface HotelRepository extends JpaRepository<Hotel, Integer> {
             @Param("limit") int limit
     );
 
-    // Phương thức mới: Tìm kiếm khách sạn dựa trên từ khóa
+    //Tìm kiếm khách sạn dựa trên từ khóa
     @Query(value = "SELECT id FROM hotels WHERE name LIKE %:keyword% OR description LIKE %:keyword% LIMIT :limit", nativeQuery = true)
     List<Integer> findHotelIdsByKeyword(@Param("keyword") String keyword, @Param("limit") int limit);
 

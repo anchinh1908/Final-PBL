@@ -64,7 +64,7 @@ public class AdminController {
         } catch (IllegalArgumentException e) {
             logger.warn("Failed to disable user with ID {}: {}", userId, e.getMessage());
             Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("message", e.getMessage());
+            errorResponse.put("message"," Không thể vô hiệu hóa người dùng : {}" + e.getMessage());
             errorResponse.put("status", HttpStatus.NOT_FOUND.value());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
 

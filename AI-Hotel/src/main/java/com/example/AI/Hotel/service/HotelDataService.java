@@ -414,14 +414,14 @@ public class HotelDataService {
             int page, int size, List<String> filterFacilities, boolean matchAll,
             int minPrice, int maxPrice, Integer numberOfGuests, Integer ratingStars) {
 //        Pageable pageable = PageRequest.of(page - 1, size);
-        logger.info("filterFacilities " + filterFacilities);
-        logger.info("matchAll " + matchAll);
-        logger.info("minPrice " + minPrice);
-        logger.info("maxPrice " + maxPrice);
-        logger.info("numberOfGuests " + numberOfGuests);
-        logger.info("ratingStars" + ratingStars);
-        logger.info("page" + page);
-        logger.info("size" + size);
+//        logger.info("filterFacilities " + filterFacilities);
+//        logger.info("matchAll " + matchAll);
+//        logger.info("minPrice " + minPrice);
+//        logger.info("maxPrice " + maxPrice);
+//        logger.info("numberOfGuests " + numberOfGuests);
+//        logger.info("ratingStars" + ratingStars);
+//        logger.info("page" + page);
+//        logger.info("size" + size);
 
 
         // Chuẩn hóa danh sách filterFacilities
@@ -431,7 +431,6 @@ public class HotelDataService {
                 .map(this::normalizeString)
                 .filter(s -> !s.isEmpty())
                 .toList();
-//        logger.info("facilitiesParam received: '{}'", filterFacilities);
         logger.info("Normalized filter facilities: {}", normalizedFilterFacilities);
 
         // Chuyển normalizedFilterFacilities thành chuỗi, phân tách bằng dấu phẩy

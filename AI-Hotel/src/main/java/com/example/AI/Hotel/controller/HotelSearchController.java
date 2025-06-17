@@ -250,7 +250,7 @@ public class HotelSearchController {
         return ResponseEntity.status(400).body(errors);
     }
 
-    // Xử lý ngoại lệ IllegalArgumentException để trả về thông báo thân thiện hơn
+    // Xử lý ngoại lệ IllegalArgumentException
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("Invalid input: {}", ex.getMessage());

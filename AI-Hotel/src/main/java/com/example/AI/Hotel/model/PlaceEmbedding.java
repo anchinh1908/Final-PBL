@@ -25,7 +25,7 @@ public class PlaceEmbedding {
     @JoinColumn(name = "place_id", nullable = false)
     private Place place;
 
-    @Convert(converter = StringVectorConverter.class)
+//    @Convert(converter = StringVectorConverter.class)
     @Column(name = "embedding", columnDefinition = "vector(3072)")
     private String embedding;
 

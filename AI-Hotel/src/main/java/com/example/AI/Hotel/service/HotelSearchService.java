@@ -32,7 +32,7 @@ public class HotelSearchService {
     private static final Logger logger = LoggerFactory.getLogger(HotelSearchService.class);
 
     private static final double SIMILARITY_THRESHOLD = 0.2;
-    private static final double ROOM_SIMILARITY_THRESHOLD = 0.05;
+    private static final double ROOM_SIMILARITY_THRESHOLD = 0.15;
     private static final int MAX_HOTELS = 80;
     private static final int MAX_ROOMS = 200;
     private static final String EMBEDDING_API_URL = "https://final-pbl-flaskapi.onrender.com/embed";
@@ -184,7 +184,6 @@ public class HotelSearchService {
             for (Object[] result : allHotels) {
                 Integer hotelId = (Integer) result[0];
                 double similarity = (Double) result[2];
-                logger.debug("Debug - Hotel ID: {}, Similarity: {}", hotelId, similarity);
             }
             return responses;
         }
@@ -228,7 +227,7 @@ public class HotelSearchService {
         List<Hotel> hotels = hotelRepository.findAllById(filteredHotelIds);
         List<RoomType> relevantRoomTypes = roomRepository.findByIdIn(roomIds);
 
-        // Bước 3: Xây dựng kết quả
+        // Xây dựng kết quả
         for (Object[] hotelResult : similarHotels) {
             Integer hotelId = (Integer) hotelResult[0];
             if (!filteredHotelIds.contains(hotelId)) {
