@@ -1,0 +1,16 @@
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+const name = () => {
+  return (
+    <View style={styles.container}>
+      
+    </View>
+  );
+};
+
+export default name;
+
+const styles = StyleSheet.create({
+  container: {
+  },
+});

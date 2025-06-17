@@ -1,0 +1,42 @@
+export const placeServices = {
+    "Lên kế hoạch": ["Yêu cầu hẹn trước", "Bạn nên đặt vé trước"],
+    "Trẻ em": [
+        "Sân chơi",
+        "Phù hợp cho tiệc sinh nhật của trẻ em",
+        "Hoạt động phù hợp với trẻ em",
+        "Chương trình chiết khấu cho trẻ em",
+        "Giảm giá cho gia đình",
+        "Phù hợp cho trẻ em",
+    ],
+    "Phù hợp cho người khuyết tật": [
+        "Chỗ đỗ xe cho xe lăn",
+        "Chỗ ngồi cho xe lăn",
+        "Âm thanh truyền bằng công nghệ Auracast",
+        "Lối vào cho xe lăn",
+        "Nhà vệ sinh cho xe lăn",
+        "Vòng trợ thính",
+    ],
+    "Tiện nghi": [
+        "Wi-Fi miễn phí",
+        "Giữ hộ hành lý",
+        "Wi-Fi",
+        "Nhà vệ sinh",
+        "Nhà vệ sinh cho cả hai giới",
+        "Nhà hàng",
+    ],
+    "Điểm nổi bật": ["Biểu diễn trực tiếp"],
+    "Bãi đỗ xe": [
+        "Bãi đỗ xe miễn phí",
+        "Đỗ xe miễn phí trên đường",
+        "Bãi đỗ xe có tính phí",
+        "Chỗ đỗ xe trong khuôn viên",
+        "Gara đỗ xe miễn phí",
+    ],
+    "Các tùy chon dịch vụ": ["Dịch vụ tại chỗ"],
+    "Khách hàng": [
+        "Chào đón những người thuộc giới LGBTQ",
+        "Dành cho gia đình",
+        "Nơi an toàn cho người chuyển giới",
+    ],
+    "Dịch vụ": ["Thực phẩm"],
+}

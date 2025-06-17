@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "DN Trip",
+    "slug": "dn-trip",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "newArchEnabled": true,
+    "assets": ["./assets/fonts"],
+    "icon": "./assets/images/icon1024.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash1024.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    }
+  }
+}
