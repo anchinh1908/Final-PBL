@@ -350,7 +350,7 @@ public class AuthController {
         if (principal == null) {
             logger.error("OAuth2 principal is null");
             String errorMessage = URLEncoder.encode("Đăng nhập thất bại", StandardCharsets.UTF_8);
-            response.sendRedirect("http://localhost:5173/callback?status=false&message=" + errorMessage);
+            response.sendRedirect("https://final-pbl.onrender.com/callback?status=false&message=" + errorMessage);
             return;
         }
         logger.info("OAuth2 principal attributes: {}", principal.getAttributes());
@@ -424,14 +424,14 @@ public class AuthController {
         } else {
             logger.error("Unsupported OAuth2 provider: {}", provider);
             String errorMessage = URLEncoder.encode("Nhà cung cấp OAuth2 không được hỗ trợ: " + provider, StandardCharsets.UTF_8);
-            response.sendRedirect("http://localhost:5173/callback?status=false&message=" + errorMessage);
+            response.sendRedirect("https://final-pbl.onrender.com/callback?status=false&message=" + errorMessage);
             return;
         }
 
         if (email == null) {
             logger.error("Missing required attribute: email");
             String errorMessage = URLEncoder.encode("Thiếu email người dùng", StandardCharsets.UTF_8);
-            response.sendRedirect("http://localhost:5173/callback?status=false&message=" + errorMessage);
+            response.sendRedirect("https://final-pbl.onrender.com/callback?status=false&message=" + errorMessage);
             return;
         }
 
@@ -465,12 +465,12 @@ public class AuthController {
             String encodedMessage = URLEncoder.encode("Đăng nhập bằng " + provider + " thành công", StandardCharsets.UTF_8);
             String encodedToken = URLEncoder.encode(token, StandardCharsets.UTF_8);
 
-            response.sendRedirect("http://localhost:5173/callback?status=true&token=" + encodedToken + "&message=" + encodedMessage);
+            response.sendRedirect("https://final-pbl.onrender.com/callback?status=true&token=" + encodedToken + "&message=" + encodedMessage);
 
         } catch (Exception e) {
             logger.error("Error during OAuth2 login for email {} via {}: {}", email, provider, e.getMessage());
             String errorMessage = URLEncoder.encode("Đăng nhập thất bại: " + e.getMessage(), StandardCharsets.UTF_8);
-            response.sendRedirect("http://localhost:5173/callback?status=false&message=" + errorMessage);
+            response.sendRedirect("https://final-pbl.onrender.com/callback?status=false&message=" + errorMessage);
         }
     }
 
