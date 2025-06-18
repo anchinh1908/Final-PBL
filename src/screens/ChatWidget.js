@@ -189,6 +189,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as FileSystem from "expo-file-system"
 import { Audio } from "expo-av"
 import AntDesign from "@expo/vector-icons/AntDesign"
+import Waveform from "../components/Waveform"
 
 const ChatWidget = ({ navigation }) => {
     const [messages, setMessages] = useState([
@@ -205,6 +206,7 @@ const ChatWidget = ({ navigation }) => {
 
     const [recording, setRecording] = useState(null)
     const [isRecording, setIsRecording] = useState(false)
+    const [isSpeechToText, setIsSpeechToText] = useState(false)
 
     useEffect(() => {
         const setupSession = async () => {
@@ -217,7 +219,10 @@ const ChatWidget = ({ navigation }) => {
     const sendMessage = async () => {
         if (!userInput.trim() || loading) return
 
-        const newMessages = [...messages, { role: "user", content: userInput.trim() }]
+        const newMessages = [
+            ...messages,
+            { role: "user", content: userInput.trim() },
+        ]
         setMessages(newMessages)
         setUserInput("")
         setLoading(true)
@@ -225,6 +230,8 @@ const ChatWidget = ({ navigation }) => {
         const token = (await AsyncStorage.getItem("token")) || ""
 
         try {
+            console.log(PUBLIC_N8N_URL)
+
             const response = await fetch(PUBLIC_N8N_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -238,8 +245,12 @@ const ChatWidget = ({ navigation }) => {
 
             const data = await response.json()
 
-            const reply = data?.response || "Xin lỗi, tôi không thể trả lời lúc này."
-            setMessages((prev) => [...prev, { role: "assistant", content: reply }])
+            const reply =
+                data?.response || "Xin lỗi, tôi không thể trả lời lúc này."
+            setMessages((prev) => [
+                ...prev,
+                { role: "assistant", content: reply },
+            ])
         } catch (error) {
             setMessages((prev) => [
                 ...prev,
@@ -270,6 +281,7 @@ const ChatWidget = ({ navigation }) => {
 
             setRecording(recording)
             setIsRecording(true)
+            setIsSpeechToText(true)
         } catch (err) {
             console.log("Failed to start recording", err)
         }
@@ -289,6 +301,8 @@ const ChatWidget = ({ navigation }) => {
             }
         } catch (err) {
             console.log("Failed to stop recording", err)
+        } finally {
+            setIsSpeechToText(false)
         }
     }
 
@@ -303,14 +317,17 @@ const ChatWidget = ({ navigation }) => {
         formData.append("model", "whisper-1")
 
         try {
-            const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${OPENAI_API_KEY}`,
-                    "Content-Type": "multipart/form-data",
-                },
-                body: formData,
-            })
+            const response = await fetch(
+                "https://api.openai.com/v1/audio/transcriptions",
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${OPENAI_API_KEY}`,
+                        "Content-Type": "multipart/form-data",
+                    },
+                    body: formData,
+                }
+            )
 
             const data = await response.json()
 
@@ -323,7 +340,8 @@ const ChatWidget = ({ navigation }) => {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={styles.container}>
+            style={styles.container}
+        >
             <View style={styles.header}>
                 <Ionicons
                     name="arrow-back"
@@ -338,48 +356,66 @@ const ChatWidget = ({ navigation }) => {
             <ScrollView
                 ref={scrollViewRef}
                 contentContainerStyle={styles.scrollContent}
-                style={styles.scroll}>
+                style={styles.scroll}
+            >
                 {messages.map((msg, index) => (
                     <View
                         key={index}
                         style={[
                             styles.messageContainer,
-                            msg.role === "user" ? styles.userMessage : styles.assistantMessage,
-                        ]}>
+                            msg.role === "user"
+                                ? styles.userMessage
+                                : styles.assistantMessage,
+                        ]}
+                    >
                         <Text
                             style={[
                                 styles.messageText,
-                                msg.role === "user" ? styles.userText : styles.assistantText,
-                            ]}>
+                                msg.role === "user"
+                                    ? styles.userText
+                                    : styles.assistantText,
+                            ]}
+                        >
                             {msg.content}
                         </Text>
                     </View>
                 ))}
-                {loading && <Text style={styles.loadingText}>Đang trả lời...</Text>}
+                {loading && (
+                    <Text style={styles.loadingText}>Đang trả lời...</Text>
+                )}
             </ScrollView>
 
             <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Nhập tin nhắn..."
-                    value={userInput}
-                    onChangeText={setUserInput}
-                />
+                {!isSpeechToText && (
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Nhập tin nhắn..."
+                        value={userInput}
+                        onChangeText={setUserInput}
+                    />
+                )}
+                {isSpeechToText && <Waveform />}
                 <Pressable
                     onPress={isRecording ? stopRecording : startRecording}
                     style={{
-                        backgroundColor: isRecording ? "#888" : COLORS.slateGray,
+                        backgroundColor: isRecording
+                            ? "#888"
+                            : COLORS.slateGray,
                         borderRadius: 24,
                         width: 38,
                         height: 38,
                         marginLeft: 8,
                         justifyContent: "center",
                         alignItems: "center",
-                    }}>
-                    <Ionicons name={isRecording ? "stop" : "mic"} size={20} color="#fff" />
+                    }}
+                >
+                    <Ionicons
+                        name={isRecording ? "stop" : "mic"}
+                        size={20}
+                        color="#fff"
+                    />
                 </Pressable>
                 <Pressable onPress={sendMessage} style={styles.sendButton}>
-                    {/* <Ionicons name="send" size={20} color="#fff" /> */}
                     <AntDesign name="arrowup" size={24} color="white" />
                 </Pressable>
             </View>
@@ -452,10 +488,11 @@ const styles = StyleSheet.create({
     },
     input: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: COLORS.silverMist,
         borderRadius: 20,
         paddingHorizontal: 16,
         paddingVertical: 8,
+        height: 38,
     },
     sendButton: {
         backgroundColor: COLORS.deepBlack,
