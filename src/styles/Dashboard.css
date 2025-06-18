@@ -1,0 +1,24 @@
+.dashboard-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.item-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.box-item-title {
+    text-align: end;
+}
+
+.box-item-number {
+    font-weight: 700;
+    font-size: x-large;
+    text-align: end;
+}

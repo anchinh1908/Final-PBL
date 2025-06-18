@@ -1,0 +1,6 @@
+.sketch-picker {
+    top: -100%;
+    right: 0;
+    transform: translateY(-8px);
+    z-index: 10;
+}

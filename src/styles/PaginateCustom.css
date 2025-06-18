@@ -1,0 +1,35 @@
+.page-item {
+    /* background-color: #00a6a9; */
+    margin: 5px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100px;
+}
+
+.page-link {
+    color: #000;
+    font-size: medium;
+    font-weight: 500;
+}
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.active-item {
+    background-color: #00a6a9;
+}
+
+.active-link {
+    color: #fff;
+    font-weight: 700;
+}
+
+.disabled-link {
+    display: none;
+}

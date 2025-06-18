@@ -1,0 +1,34 @@
+.user-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+}
+
+.user-sidebar-link div {
+    padding: 10px;
+    border-radius: 9999px;
+    background-color: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-sidebar-link p {
+    font-weight: 100;
+}
+
+.user-sidebar-link:hover div {
+    @apply bg-amber-50 text-gray-800
+}
+
+.user-sidebar-link:hover p {
+    @apply text-gray-800 underline
+}
+
+.user-sidebar-active-link div {
+    @apply bg-amber-50 text-gray-800
+}
+.user-sidebar-active-link p {
+    @apply text-gray-800 font-semibold
+}

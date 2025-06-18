@@ -1,0 +1,30 @@
+.map-container {
+    width: 100%;
+    height: 450px;
+    margin-bottom: 10px;
+}
+
+.map-note {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.chart-title {
+    text-align: center;
+    font-weight: bold;
+    color: #00a6a9;
+}
+
+@media (max-width: 991px) {
+    .chart-title {
+        font-size: small;
+    }
+    .map-container {
+        height: 350px;
+    }
+}
+
+.leaflet-control a {
+    display: none;
+  }

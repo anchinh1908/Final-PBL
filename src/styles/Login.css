@@ -1,0 +1,139 @@
+.login {
+    display: flex;
+    height: 100vh;
+    justify-content: flex-end;
+    align-items: center;
+    background: #00a6a9;
+    background-image: url("../assets/TechVerse.png") !important;
+    background-position: 20%;
+    background-size: 25%;
+    width: 100vw;
+    background-repeat: no-repeat;
+}
+
+@media (max-width: 900px) {
+    .login {
+        background-image: none !important;
+    }
+}
+
+.login-form {
+    background: #fff;
+    width: 560px;
+    margin-right: 110px;
+    align-items: center;
+    justify-content: center;
+    padding: 50px 50px;
+    border-radius: 25px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.login-form h1 {
+    font-size: 30px;
+    /* color: #00a6a9; */
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.input-style {
+    border-width: 2px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.input-style input {
+    outline: none;
+    border: none;
+    width: 100%;
+    font-size: 18px;
+    margin: 5px 0px;
+}
+
+.input-style:hover {
+    border-color: #00a6a9;
+}
+
+.button {
+    padding: 15px 0;
+    border-radius: 50px;
+    width: 100%;
+    background: #00a6a9;
+    color: #fff;
+    font-size: large;
+    line-height: 1;
+}
+
+.button-register {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.button-register a {
+    color: #1560bd;
+    font-size: medium;
+    margin-left: 4px;
+    font-style: italic;
+}
+
+.button-register a:hover {
+    text-decoration-line: underline;
+    font-weight: 700;
+}
+
+.button-forget-password {
+    display: flex;
+    margin-top: 6px;
+}
+
+.button-forget-password a {
+    color: #000;
+    font-size: medium;
+    margin-left: 4px;
+}
+
+.button-forget-password a:hover {
+    text-decoration-line: underline;
+}
+
+.expand {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+    font-size: 14px;
+}
+
+.separate {
+    flex: 1;
+    height: 1px;
+    border-radius: 10px;
+    background: #d1d6e0;
+    margin: 0 15px;
+}
+
+.third-party-login {
+    padding: 10px;
+    border-width: 1px;
+    border-radius: 100px;
+    border-color: #c1c6ce;
+}
+
+.third-party-login:hover {
+    background: #d1d6e0;
+}
+
+.error-login {
+    text-align: center;
+    color: #ff0000;
+    font-weight: 700;
+    margin-top: 5px;
+}
+
+.loading-login {
+    display: flex;
+    justify-content: center;
+    /* margin-top: 5px; */
+}

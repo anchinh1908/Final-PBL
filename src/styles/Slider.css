@@ -1,0 +1,75 @@
+.slide-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.slide-content img {
+  width: 48%;
+  height: auto;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.mySlide {
+  position: relative;
+}
+.next-slide {
+  color: rgba(255, 255, 255, 20%);
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translate(0, -50%);
+  z-index: 1;
+}
+
+.next-slide:hover {
+  color: rgba(255, 255, 255, 50%);
+}
+
+.prev-slide {
+  color: rgba(255, 255, 255, 20%);
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(0, -50%);
+  z-index: 1;
+}
+
+.prev-slide:hover {
+  color: rgba(255, 255, 255, 50%);
+}
+
+.mySlide2 {
+  position: relative;
+}
+.next-slide2 {
+  color: rgba(255, 251, 235, 50%);
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translate(0, -50%);
+  z-index: 1;
+}
+
+.next-slide2:hover {
+  color: rgba(255, 251, 235, 100%);
+}
+
+.prev-slide2 {
+  color: rgba(255, 251, 235, 50%);
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(0, -50%);
+  z-index: 1;
+}
+
+.prev-slide2:hover {
+  color: rgba(255, 251, 235, 100%);
+}
+
+.swiper-pagination-bullet-active {
+  background-color: #e7be99  !important; /* ví dụ màu cam Tailwind: orange-500 */
+}

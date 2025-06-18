@@ -1,0 +1,105 @@
+.signup {
+    display: flex;
+    height: 100vh;
+    justify-content: flex-end;
+    align-items: center;
+    background: #00a6a9;
+    background-image: url("../assets/TechVerse.png") !important;
+    background-position: 20%;
+    background-size: 25%;
+    width: 100vw;
+    background-repeat: no-repeat;
+}
+
+.signup-form {
+    background: #fff;
+    width: 560px;
+    margin-right: 110px;
+    align-items: center;
+    justify-content: center;
+    padding: 50px 70px;
+    border-radius: 25px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.signup-form h1 {
+    font-size: 30px;
+    color: #00a6a9;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.input-style {
+    border-width: 2px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.input-style input {
+    outline: none;
+    border: none;
+    width: 100%;
+    font-size: 18px;
+    margin: 2px 0px;
+}
+
+.input-style:hover {
+    border-color: #00a6a9;
+}
+
+.button {
+    padding: 14px 0;
+    border-radius: 50px;
+    width: 100%;
+    background: #00a6a9;
+    color: #fff;
+    font-size: large;
+    line-height: 1;
+}
+
+.button-login {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.button-login a {
+    color: #1560bd;
+    font-size: medium;
+    margin-left: 4px;
+    font-style: italic;
+}
+
+.button-login a:hover {
+    text-decoration-line: underline;
+    font-weight: 700;
+}
+
+/* .expand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+  font-size: 14px;
+} */
+
+/* .separate {
+  flex: 1;
+  height: 1px;
+  border-radius: 10px;
+  background: #d1d6e0;
+  margin: 0 15px;
+}
+
+.third-party-signup {
+  padding: 10px;
+  border-width: 1px;
+  border-radius: 100px;
+  border-color: #c1c6ce;
+}
+
+.third-party-signup:hover {
+  background: #d1d6e0;
+} */

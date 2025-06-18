@@ -1,0 +1,17 @@
+export const HOME = "/"
+
+export const ADMIN_DASHBOARD = "/admin/dashboard"
+export const ADMIN_HOTELS = "/admin/hotels"
+export const ADMIN_ADD_HOTEL = "/admin/add-hotel"
+export const ADMIN_UPDATE_HOTEL = "/admin/update-hotel"
+export const ADMIN_BRANDS = "/admin/brands"
+export const ADMIN_PlACES = "/admin/places"
+export const ADMIN_ADD_PLACE = "/admin/add-place"
+export const ADMIN_UPDATE_PLACE = "/admin/update-place"
+export const ADMIN_ORDERS = "/admin/orders"
+export const ADMIN_ACCOUNTS = "/admin/accounts"
+export const ADMIN_PRODUCTS_RECYCLING_BIN = "/admin/products-recycling-bin"
+export const ADMIN_ORDERS_RECYCLING_BIN = "/admin/orders-recycling-bin"
+
+export const LOGIN = "/login"
+export const SIGNUP = "/signup"

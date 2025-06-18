@@ -1,0 +1,59 @@
+.brand-container {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px 3%;
+    margin-top: 20px;
+}
+
+.bg-brand {
+    /* background-color: #e1fff8; */
+    padding: 15px 0 5px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.bg-brand img {
+    width: 65%;
+    height: 80px;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
+.bg-brand h2 {
+    line-height: 1;
+    margin-top: 10px;
+}
+
+.detail-container {
+    display: flex;
+    width: 100%;
+}
+
+.number-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.brand-name {
+    font-size: 20px;
+    width: 100%;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e8e4ec;
+    text-align: center;
+}
+
+.checkbox-container {
+    position: relative;
+
+}
+
+.checkbox-brand {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+}
+
