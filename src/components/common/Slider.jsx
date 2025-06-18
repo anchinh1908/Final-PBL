@@ -63,7 +63,7 @@ const Slider = ({ hotels }) => {
                                     {item.hotel.slug && (
                                         <div
                                             onClick={() => navigate(`hotels/${item.hotel.slug}`)}
-                                            className="border-[1px] m-2 border-gray-300 rounded-2xl cursor-pointer hover:scale-105 hover:bg-amber-50">
+                                            className="border-[1px] m-2 bg-pureWhite border-gray-300 rounded-2xl cursor-pointer hover:scale-105 hover:bg-amber-50">
                                             <div className="relative">
                                                 <img
                                                     src={item.hotel.imageUrls[0]}

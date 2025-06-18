@@ -35,11 +35,16 @@ const Hotels = () => {
     const [bedroomNumber, setBedroomNumber] = useState(0)
     const [quantitySelected, setQuantitySelected] = useState()
 
-    const [page, setPage] = useState(parseInt(searchParams.get("page") || 1, 10))
-    const [searchInput, setSearchInput] = useState(searchParams.get("key") || "")
+    const [page, setPage] = useState(
+        parseInt(searchParams.get("page") || 1, 10)
+    )
+    const [searchInput, setSearchInput] = useState(
+        searchParams.get("key") || ""
+    )
 
     const districtParam = searchParams.get("district") || ""
-    const districtSelected = districtJson.find((d) => d.id === districtParam)?.value || ""
+    const districtSelected =
+        districtJson.find((d) => d.id === districtParam)?.value || ""
     const numberOfGuests = parseInt(searchParams.get("numberOfGuests") || 0, 10)
     const maxPrice = parseInt(searchParams.get("maxPrice") || 0, 10)
 
@@ -84,12 +89,13 @@ const Hotels = () => {
         try {
             window.scrollTo(0, 0)
 
-            const { hotels, totalPages, currentPage } = await search_Hotels_By_Filter(
-                districtSelected,
-                numberOfGuests,
-                maxPrice,
-                page
-            )
+            const { hotels, totalPages, currentPage } =
+                await search_Hotels_By_Filter(
+                    districtSelected,
+                    numberOfGuests,
+                    maxPrice,
+                    page
+                )
 
             dispatch({
                 type: "FETCH_HOTELS",
@@ -175,10 +181,9 @@ const Hotels = () => {
         try {
             window.scrollTo(0, 0)
 
-            const { hotels, totalPages, currentPage } = await search_Hotels_By_Model(
-                searchInput,
-                page
-            )
+            const token = localStorage.getItem("token")
+            const { hotels, totalPages, currentPage } =
+                await search_Hotels_By_Model(token, searchInput, page)
 
             dispatch({
                 type: "FETCH_HOTELS",
@@ -251,7 +256,9 @@ const Hotels = () => {
 
     const handleAmenitiesChange = (item) => {
         setAmenities((prev) =>
-            prev.includes(item) ? prev.filter((index) => index !== item) : [...prev, item]
+            prev.includes(item)
+                ? prev.filter((index) => index !== item)
+                : [...prev, item]
         )
     }
 
@@ -269,31 +276,34 @@ const Hotels = () => {
                             {amenities.map((amenity, idx) => (
                                 <div
                                     key={idx}
-                                    className="flex items-center gap-1 bg-amber-50 border rounded-md p-1 text-sm">
+                                    className="flex items-center gap-1 bg-amber-50 border rounded-md p-1 text-sm"
+                                >
                                     <p className="px-2">{amenity}</p>
                                 </div>
                             ))}
                         </div>
                     )}
                     <div className="mb-2">
-                        {(showAll ? facilities : facilities.slice(0, maxVisibleItems)).map(
-                            (item, idx) => (
-                                <div key={idx} className="flex items-start">
-                                    <Checkbox
-                                        checked={amenities.includes(item)}
-                                        onChange={() => handleAmenitiesChange(item)}
-                                        size="small"
-                                        color="default"
-                                    />
-                                    <p className="text-sm pt-[9px]">{item}</p>
-                                </div>
-                            )
-                        )}
+                        {(showAll
+                            ? facilities
+                            : facilities.slice(0, maxVisibleItems)
+                        ).map((item, idx) => (
+                            <div key={idx} className="flex items-start">
+                                <Checkbox
+                                    checked={amenities.includes(item)}
+                                    onChange={() => handleAmenitiesChange(item)}
+                                    size="small"
+                                    color="default"
+                                />
+                                <p className="text-sm pt-[9px]">{item}</p>
+                            </div>
+                        ))}
 
                         {facilities.length > maxVisibleItems && (
                             <button
                                 onClick={() => setShowAll(!showAll)}
-                                className="text-blue-500 mt-2 hover:underline text-sm mx-3">
+                                className="text-blue-500 mt-2 hover:underline text-sm mx-3"
+                            >
                                 {showAll ? "Thu gọn" : "Xem thêm"}
                             </button>
                         )}
@@ -304,7 +314,8 @@ const Hotels = () => {
                     <p className="font-bold">Ngân sách của bạn (mỗi đêm)</p>
                     <p className="text-sm my-2">
                         VND {priceSlider[0].toLocaleString()} - VND{" "}
-                        {priceSlider[1].toLocaleString()} {priceSlider[1] == maxSlider && "+"}
+                        {priceSlider[1].toLocaleString()}{" "}
+                        {priceSlider[1] == maxSlider && "+"}
                     </p>
                     <div className="mx-2.5">
                         <Slider
@@ -323,7 +334,10 @@ const Hotels = () => {
                     <p className="pb-2 font-bold">Số lượng khách 1 phòng</p>
                     <div className="flex justify-between items-center mb-2">
                         <p>Số khách</p>
-                        <NumberInput count={bedroomNumber} setCount={setBedroomNumber} />
+                        <NumberInput
+                            count={bedroomNumber}
+                            setCount={setBedroomNumber}
+                        />
                     </div>
                 </div>
 
@@ -357,7 +371,8 @@ const Hotels = () => {
                     </div>
                     <button
                         onClick={() => handleSearchButton()}
-                        className="rounded-lg p-2 bg-black text-white">
+                        className="rounded-lg p-2 bg-black text-white"
+                    >
                         Tìm kiếm
                     </button>
                 </div>
@@ -366,7 +381,8 @@ const Hotels = () => {
                     <div className="flex justify-end">
                         <p
                             onClick={() => setShowModal(true)}
-                            className="text-blue-600 text-base font-thin underline mb-2 line-clamp-3 cursor-pointer">
+                            className="text-blue-600 text-base font-thin underline mb-2 line-clamp-3 cursor-pointer"
+                        >
                             Xem trên bản đồ
                         </p>
                     </div>

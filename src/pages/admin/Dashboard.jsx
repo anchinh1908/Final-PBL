@@ -114,7 +114,7 @@ const Dashboard = () => {
 
             <Grid container spacing={{ xs: 3, sm: 3, md: 4 }} columns={1} className="mb-8">
                 <Grid size={1} className="shadow-box">
-                    <RevenueMapChart />
+                    <RevenueMapChart hotels={topHotels} />
                 </Grid>
             </Grid>
 

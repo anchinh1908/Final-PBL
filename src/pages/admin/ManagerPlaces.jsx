@@ -127,7 +127,7 @@ const ManagerPlaces = () => {
                     className="add-product-button rounded-md"
                     onClick={() => navigate(ADMIN_ADD_PLACE)}>
                     <BiBookAdd className="mr-2 size-5" />
-                    Thêm sản phẩm mới
+                    Thêm địa điểm mới
                 </div>
             </div>
 

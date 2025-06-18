@@ -1,5 +1,5 @@
 import logo from "~/assets/iconCrop.png"
-import loopy from "~/assets/loopy.png"
+import loopy from "~/assets/loopy1.jpg"
 import "~/styles/AdminNavbar.css"
 import { useLogout } from "~/hooks/useLogout"
 import { FaAngleDown } from "react-icons/fa6"

@@ -136,9 +136,8 @@ export const search_Hotels_By_Filter = async (district, numberOfGuests, maxPrice
     }
 }
 
-export const search_Hotels_By_Model = async (query, page) => {
+export const search_Hotels_By_Model = async (token, query, page) => {
     try {
-        const token = localStorage.getItem("token")
         const response = await fetch(`${root}/search?page=${page}`, {
             method: "POST",
             headers: {

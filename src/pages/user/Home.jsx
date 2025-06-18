@@ -2,7 +2,11 @@ import banner from "~/assets/BannerHotel2.png"
 import Slider from "~/components/common/Slider"
 import { Container } from "@mui/material"
 import { useNavigate } from "react-router-dom"
-import { get_All_Hotels, get_Top_5_Hotels } from "~/services/HotelService"
+import {
+    get_All_Hotels,
+    get_Top_5_Hotels,
+    search_Hotels_By_Model,
+} from "~/services/HotelService"
 import useHotelContext from "~/hooks/useHotelContext"
 import { useEffect, useState } from "react"
 import HotelItem from "~/components/user/HotelItem"
@@ -10,6 +14,8 @@ import usePlaceContext from "~/hooks/usePlaceContext"
 import { get_All_Places } from "~/services/PlaceService"
 import { districtJson } from "~/utils/district"
 import { getSearchHotelByFilterParams } from "~/utils/queryParamsHelper"
+import { useAuthContext } from "~/hooks/useAuthContext"
+import { get_Search_History } from "~/services/UserService"
 
 const Home = () => {
     const [topHotels, setTopHotels] = useState([])
@@ -19,8 +25,10 @@ const Home = () => {
     const navigate = useNavigate()
     const { hotels, dispatch: hotelDispatch } = useHotelContext()
     const { places, dispatch: placeDispatch } = usePlaceContext()
+    const { user } = useAuthContext()
 
     const [searchInput, setSearchInput] = useState("")
+    const [recommendation, setRecommendation] = useState([])
 
     useEffect(() => {
         const getAllHotels = async () => {
@@ -71,6 +79,37 @@ const Home = () => {
         getAllPlaces()
     }, [])
 
+    useEffect(() => {
+        const handleSearchByModel = async (searchKey) => {
+            try {
+                const { hotels } = await search_Hotels_By_Model("", searchKey, 1)
+
+                setRecommendation(hotels)
+            } catch (error) {
+                console.error(
+                    error.message || "Không thể tải danh sách khách sạn"
+                )
+            }
+        }
+
+        const handleSearchBySearchHistory = async () => {
+            const searchHistory = await get_Search_History()
+            console.log(searchHistory.length)
+
+            if (searchHistory.length > 0) {
+                const list = searchHistory.map((item) => item.queryHistory)
+
+                const textHistory = Array.from(new Set(list)).join(" ")
+                console.log(textHistory)
+
+                await handleSearchByModel(textHistory)
+            } else await handleSearchByModel("Gợi ý 1 vài khách sạn phù hợp")
+        }
+
+        if (!user) handleSearchByModel("Gợi ý 1 vài khách sạn phù hợp")
+        else handleSearchBySearchHistory()
+    }, [user])
+
     const handleChange = (event) => {
         setDistrictSelected(event.target.value)
     }
@@ -101,7 +140,8 @@ const Home = () => {
                         <select
                             value={districtSelected}
                             onChange={handleChange}
-                            className="w-full outline-none rounded-lg">
+                            className="w-full outline-none rounded-lg"
+                        >
                             <option value="">-- Chọn quận --</option>
                             {districtJson.map((d) => (
                                 <option key={d.id} value={d.id} className="">
@@ -121,7 +161,9 @@ const Home = () => {
                         />
                     </div>
                     <div className="flex-1 rounded-lg p-2 bg-white flex gap-2">
-                        <p className="text-gray-400 border-r border-gray-400 pr-2">VND</p>
+                        <p className="text-gray-400 border-r border-gray-400 pr-2">
+                            VND
+                        </p>
                         <input
                             type="number"
                             step={100000}
@@ -141,7 +183,8 @@ const Home = () => {
                                 )}`
                             )
                         }
-                        className="rounded-lg p-2 bg-black text-white">
+                        className="rounded-lg p-2 bg-black text-white"
+                    >
                         Tìm kiếm
                     </button>
                 </div>
@@ -156,7 +199,8 @@ const Home = () => {
                     </div>
                     <button
                         onClick={() => navigate(`hotels?key=${searchInput}`)}
-                        className="rounded-lg p-2 bg-black text-white">
+                        className="rounded-lg p-2 bg-black text-white"
+                    >
                         Tìm kiếm
                     </button>
                 </div>
@@ -165,33 +209,77 @@ const Home = () => {
             <Container fixed className="mt-6 relative">
                 <p className="text-xl pb-2 font-bold">Khách sạn nổi bật</p>
                 <div className="w-[490px] h-0 outline outline-[3px] outline-offset-[-1.50px] outline-black" />
-                <div className="relative -mx-4">
+                <div className="relative -mx-1.5">
                     <Slider hotels={topHotels} />
                 </div>
             </Container>
 
-            <Container fixed className="mt-6">
-                <div className="flex justify-between items-end">
-                    <p className="text-xl font-bold leading-none">Tất cả khách sạn</p>
-                    <p
-                        onClick={() => navigate("/hotels")}
-                        className="text-base text-blue-600 leading-none">
-                        Xem tất cả
-                    </p>
+            <Container fixed className="mt-6 flex gap-5 items-start">
+                <div className="flex-1">
+                    <div className="flex justify-between items-end">
+                        <p className="text-xl font-bold leading-none">
+                            Tất cả khách sạn
+                        </p>
+                        <p
+                            onClick={() => navigate("/hotels")}
+                            className="text-base text-blue-600 leading-none"
+                        >
+                            Xem tất cả
+                        </p>
+                    </div>
+                    <div className="py-6 flex flex-col gap-4">
+                        {Array.isArray(hotels) &&
+                            hotels
+                                .slice(0, 10)
+                                .map((item) => (
+                                    <HotelItem
+                                        item={item}
+                                        key={item.hotel.id}
+                                        navigate={navigate}
+                                    />
+                                ))}
+                    </div>
                 </div>
-                <div className="py-6 flex flex-col gap-4">
-                    {Array.isArray(hotels) &&
-                        hotels
-                            .slice(0, 10)
-                            .map((item) => (
-                                <HotelItem item={item} key={item.hotel.id} navigate={navigate} />
-                            ))}
+                <div className="w-72 bg-pureWhite no-padding-shadow-box-hover mt-11">
+                    <h2 className="p-3">Khách sạn đề xuất</h2>
+
+                    {recommendation.map((hotel, idx) => (
+                        <div
+                            key={hotel.hotel.id}
+                            className={`p-3 cursor-pointer flex gap-3 hover:bg-shadowBlack/5 ${idx != recommendation.length - 1 && "border-b"
+                                } ${idx === recommendation.length - 1 &&
+                                "rounded-b-[15px]"
+                                }`}
+                            onClick={() =>
+                                navigate(`/hotels/${hotel.hotel.slug}`)
+                            }
+                        >
+                            <img
+                                src={hotel.hotel.imageUrls[0]}
+                                alt=""
+                                className="w-16 h-12 mt-1.5"
+                            />
+                            <div>
+                                <p className="line-clamp-2">
+                                    {hotel.hotel.name}
+                                </p>
+                                <p className="font-bold">
+                                    {hotel.rooms[0].price.toLocaleString()}{" "}
+                                    VND/đêm
+                                </p>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </Container>
             <Container fixed className="mt-6">
                 <div className="flex justify-between items-end">
-                    <p className="text-xl font-bold leading-none">Địa điểm du lịch</p>
-                    <p className="text-base text-blue-600 leading-none">Xem thêm</p>
+                    <p className="text-xl font-bold leading-none">
+                        Địa điểm du lịch
+                    </p>
+                    <p className="text-base text-blue-600 leading-none">
+                        Xem thêm
+                    </p>
                 </div>
                 <div className="py-6 flex gap-4">
                     {Array.isArray(places) &&
@@ -199,8 +287,13 @@ const Home = () => {
                             <div
                                 key={item.id}
                                 onClick={() => navigate(`/places/${item.slug}`)}
-                                className="no-padding-shadow-box-hover flex flex-1 border border-amber-50 relative cursor-pointer">
-                                <img src={item.imageUrl} alt={item.title} className="rounded-2xl" />
+                                className="no-padding-shadow-box-hover flex flex-1 border border-amber-50 relative cursor-pointer"
+                            >
+                                <img
+                                    src={item.imageUrl}
+                                    alt={item.title}
+                                    className="rounded-2xl"
+                                />
                                 <div className="w-full h-20 absolute rounded-b-2xl bottom-0 bg-black/50 flex justify-center items-center">
                                     <p className="text-white ">{item.title}</p>
                                 </div>

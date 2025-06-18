@@ -84,7 +84,8 @@ export const resetPassword = async (email, otp, newPassword) => {
         })
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Reset mật khẩu thất bại")
+        if (!response.ok)
+            throw new Error(json.message || "Reset mật khẩu thất bại")
 
         return json
     } catch (error) {
@@ -104,7 +105,8 @@ export const getAccount = async (token) => {
         })
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Lấy thông tin tài khoản thất bại!")
+        if (!response.ok)
+            throw new Error(json.message || "Lấy thông tin tài khoản thất bại!")
 
         return json
     } catch (error) {
@@ -118,7 +120,11 @@ export const updateProfile = async (token, user) => {
         const formData = new FormData()
         if (user.fullName) formData.append("fullName", user.fullName)
         if (user.phoneNumber) formData.append("phoneNumber", user.phoneNumber)
-        if (user.dateOfBirth) formData.append("dateOfBirth", format(user.dateOfBirth, "dd-MM-yyyy"))
+        if (user.dateOfBirth)
+            formData.append(
+                "dateOfBirth",
+                format(user.dateOfBirth, "dd-MM-yyyy")
+            )
         if (user.address) formData.append("address", user.address)
         if (user.avatar) formData.append("avatar", user.avatar)
 
@@ -135,7 +141,8 @@ export const updateProfile = async (token, user) => {
         })
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Cập nhật thông tin thất bại.")
+        if (!response.ok)
+            throw new Error(json.message || "Cập nhật thông tin thất bại.")
 
         return json
     } catch (error) {
@@ -152,11 +159,15 @@ export const changePassword = async (token, oldPassword, newPassword) => {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ oldPassword: oldPassword, newPassword: newPassword }),
+            body: JSON.stringify({
+                oldPassword: oldPassword,
+                newPassword: newPassword,
+            }),
         })
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Đổi mật khẩu thất bại")
+        if (!response.ok)
+            throw new Error(json.message || "Đổi mật khẩu thất bại")
 
         return json
     } catch (error) {
@@ -180,7 +191,8 @@ export const getAllUser = async (token, page = 1, size = 20) => {
         })
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Lấy thông tin tài khoản thất bại!")
+        if (!response.ok)
+            throw new Error(json.message || "Lấy thông tin tài khoản thất bại!")
 
         return json
     } catch (error) {
@@ -227,7 +239,8 @@ export const search_Users = async (token, email) => {
 
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Tìm kiếm người dùng thất bại")
+        if (!response.ok)
+            throw new Error(json.message || "Tìm kiếm người dùng thất bại")
 
         return json
     } catch (error) {
@@ -247,7 +260,8 @@ export const block_User = async (token, userid) => {
 
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Vô hiệu hoá tài khoản thất bại.")
+        if (!response.ok)
+            throw new Error(json.message || "Vô hiệu hoá tài khoản thất bại.")
 
         return json
     } catch (error) {
@@ -267,7 +281,8 @@ export const restore_User = async (token, userid) => {
 
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Khôi phục tài khoản thất bại.")
+        if (!response.ok)
+            throw new Error(json.message || "Khôi phục tài khoản thất bại.")
 
         return json
     } catch (error) {
@@ -287,7 +302,8 @@ export const get_User_By_Id = async (token, userid) => {
 
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Lỗi khi lấy người dùng.")
+        if (!response.ok)
+            throw new Error(json.message || "Lỗi khi lấy người dùng.")
 
         return json
     } catch (error) {
@@ -307,7 +323,8 @@ export const delete_User = async (token, userid) => {
 
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Xoá tài khoản thất bại.")
+        if (!response.ok)
+            throw new Error(json.message || "Xoá tài khoản thất bại.")
 
         return json
     } catch (error) {
@@ -327,11 +344,34 @@ export const count_Number = async (token) => {
 
         const json = await response.json()
 
-        if (!response.ok) throw new Error(json.message || "Lấy số lượng thất bại.")
+        if (!response.ok)
+            throw new Error(json.message || "Lấy số lượng thất bại.")
 
         return json
     } catch (error) {
         console.error("Lấy số lượng thất bại:", error)
         throw error
+    }
+}
+
+export const get_Search_History = async () => {
+    try {
+        const token = localStorage.getItem("token")
+        const response = await fetch(`${root}/user/search-history`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+
+        const json = await response.json()
+
+        if (!response.ok)
+            throw new Error(json.message || "Lấy số lượng thất bại.")
+
+        return json
+    } catch (error) {
+        console.error("Lấy số lượng thất bại:", error)
+        return []
     }
 }

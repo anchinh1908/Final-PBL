@@ -83,37 +83,80 @@
 
 // export default RevenueMapChart;
 
-import { MapContainer, TileLayer } from "react-leaflet"
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet"
 import { useRef, useState } from "react"
 import "leaflet/dist/leaflet.css"
 import "~/styles/Chart.css"
 import CircleIcon from "@mui/icons-material/Circle"
+import L from "leaflet"
+import PropTypes from "prop-types"
 
-const RevenueMapChart = () => {
-    const [center, setCenter] = useState({ lat: 15.87, lng: 108.334 })
+// Fix lỗi icon không hiện
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl:
+        "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
+})
+
+const RevenueMapChart = ({ hotels }) => {
+    const [center,] = useState({ lat: 15.87, lng: 108.334 })
     const ZOOM_LEVEL = 9
     const mapRef = useRef()
-    const mapUrl = `${import.meta.env.VITE_MAPTILER_URL}?key=${import.meta.env.VITE_MAPTILER_KEY}`;
+    const mapUrl = `${import.meta.env.VITE_MAPTILER_URL}?key=${import.meta.env.VITE_MAPTILER_KEY
+        }`
     const mapAttribution = import.meta.env.VITE_MAPTILER_ATTRIBUTION
 
     return (
-        <div>
-            <h1 className="chart-title mb-2">Top 5 thương hiệu bán chạy nhất</h1>
+        <div className="flex gap-4">
+            <div className="flex-1">
+                <h1 className="chart-title mb-2">Top 10 khách sạn doanh thu cao</h1>
 
-            <MapContainer center={center} zoom={ZOOM_LEVEL} ref={mapRef} className="map-container">
-                <TileLayer url={mapUrl} attribution={mapAttribution} />
-            </MapContainer>
+                <MapContainer
+                    center={center}
+                    zoom={ZOOM_LEVEL}
+                    ref={mapRef}
+                    className="map-container"
+                >
+                    <TileLayer url={mapUrl} attribution={mapAttribution} />
 
-            <div className="ml-5">
-                <h1>Chú thích</h1>
-                <div className="flex text-justify">
-                    <CircleIcon sx={{ fontSize: 15 }} className="text-red-500 mr-1 mt-1" />
-                    Nếu bạn muốn nhãn hiển thị đặc biệt ở cuối trục (trên cùng hoặc dưới cùng), bạn
-                    cần sử dụng ticks
-                </div>
+                    {hotels.map((hotel) => (
+                        <Marker key={hotel.hotel.id} position={[hotel.hotel.latitude, hotel.hotel.longitude]}>
+                            <Popup>{hotel.hotel.name}</Popup>
+                        </Marker>
+                    ))}
+                </MapContainer>
+            </div>
+
+            <div className="mt-10 w-80">
+                <h2>Chú thích</h2>
+                <ul>
+                    {hotels.map((hotel) => (
+                        <li key={hotel.hotel.id}>
+                            <CircleIcon
+                                fontSize="small"
+                                style={{ color: "lightblue" }}
+                            />{" "}
+                            {hotel.hotel.name}
+                        </li>
+                    ))}
+                </ul>
             </div>
         </div>
     )
 }
 
+RevenueMapChart.propTypes = {
+    hotels: PropTypes.object.isRequired,
+}
+
 export default RevenueMapChart
+
+{
+    /* <div className="flex text-justify">
+                    <CircleIcon sx={{ fontSize: 15 }} className="text-red-500 mr-1 mt-1" />
+                    Nếu bạn muốn nhãn hiển thị đặc biệt ở cuối trục (trên cùng hoặc dưới cùng), bạn
+                    cần sử dụng ticks
+                </div> */
+}
