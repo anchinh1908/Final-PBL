@@ -29,10 +29,10 @@ const UserProfile = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
 
-                <View style={[styles.myBasicInformation, { paddingVertical: 5 }]}>
+                <View style={[styles.myBasicInformation, { paddingVertical: 5, paddingBottom: 35 }]}>
                     <Text style={styles.textName}>{user.fullName}</Text>
                     <Text style={styles.text}>{user.email}</Text>
-                    <Text style={styles.text}>({user.phoneNumber})</Text>
+                    <Text style={styles.text}>{user.phoneNumber ? user.phoneNumber : "SDT"}</Text>
                 </View>
             </View>
 
@@ -125,9 +125,14 @@ const styles = StyleSheet.create({
         color: COLORS.pureWhite,
     },
     mainContainer: {
+        backgroundColor: COLORS.pureWhite,
         flex: 1,
-        marginHorizontal: 16,
-        marginTop: 20,
+        paddingHorizontal: 16,
+        marginTop: -25,
+		paddingTop: 20,
+		borderTopLeftRadius: 30,
+		borderTopRightRadius: 30,
+		elevation: 10
     },
     item: {
         flexDirection: "row",
@@ -136,7 +141,7 @@ const styles = StyleSheet.create({
     },
     iconItem: {
         color: COLORS.shadowWhite,
-        backgroundColor: COLORS.oceanSlate,
+        backgroundColor: COLORS.sunsetOrange,
         padding: 14,
         borderRadius: 999,
     },
