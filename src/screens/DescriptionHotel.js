@@ -215,7 +215,7 @@ const DescriptionHotel = ({ slug }) => {
                                 />
                             )}
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => {}} style={styles.bookButton}>
+                        <TouchableOpacity onPress={() => Linking.openURL(hotel?.hotelLink)} style={styles.bookButton}>
                             <Text style={{ color: COLORS.pureWhite }}>Đặt ngay</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
