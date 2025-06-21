@@ -1,9 +1,9 @@
 export const reviews = [
+    "Sạch sẽ",
+    "Nhân viên phục vụ",
     "Thoải mái",
     "Tiện nghi",
-    "Nhân viên phục vụ",
     "Địa điểm",
-    "Sạch sẽ",
-    "Đáng giá tiền",
     "WiFi miễn phí",
+    "Đáng giá tiền",
 ]
