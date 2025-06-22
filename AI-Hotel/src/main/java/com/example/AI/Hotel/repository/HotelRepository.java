@@ -63,13 +63,6 @@ public interface HotelRepository extends JpaRepository<Hotel, Integer> {
                     "  WHERE :normalizedFacilitiesStr IS NOT NULL AND :normalizedFacilitiesStr != '') " +
                     ")))",
             nativeQuery = true)
-//    Page<Hotel> findByRatingStarsAndFacilities(
-//            @Param("ratingStars") Integer ratingStars,
-//            @Param("facilities") List<String> facilities,
-//            @Param("normalizedFacilitiesStr") String normalizedFacilitiesStr,
-//            @Param("facilitiesSize") Long facilitiesSize,
-//            @Param("matchAll") boolean matchAll,
-//            Pageable pageable);
     List<Hotel>findByRatingStarsAndFacilities(
             @Param("ratingStars") Integer ratingStars,
             @Param("facilities") List<String> facilities,
@@ -99,12 +92,12 @@ public interface HotelRepository extends JpaRepository<Hotel, Integer> {
     // CAST(:queryEmbedding AS vector): Chuyển đổi tham số queryEmbedding (kiểu String) thành kiểu vector để so sánh.
     // (1 - (he.embedding <=> CAST(:queryEmbedding AS vector))): Tính độ tương đồng cosine (1 - khoảng cách cosine).
     @Query(value = """
-        SELECT 
-            he.hotel_id,
+        SELECT
+            CAST(he.metadata->>'hotel_id' AS INTEGER) AS hotel_id,
             h.name AS hotel_name,
             (1 - (he.embedding <=> CAST(:queryEmbedding AS vector))) AS similarity
-        FROM hotel_embeddings he
-        JOIN hotels h ON he.hotel_id = h.id
+        FROM travel_chunks he
+        JOIN hotels h ON CAST(he.metadata->>'hotel_id' AS INTEGER) = h.id
         WHERE (1 - (he.embedding <=> CAST(:queryEmbedding AS vector))) >= :threshold
         ORDER BY similarity DESC
         LIMIT :limit

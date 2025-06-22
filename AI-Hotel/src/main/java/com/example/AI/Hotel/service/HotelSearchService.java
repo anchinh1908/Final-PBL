@@ -31,8 +31,8 @@ import java.util.stream.Collectors;
 public class HotelSearchService {
     private static final Logger logger = LoggerFactory.getLogger(HotelSearchService.class);
 
-    private static final double SIMILARITY_THRESHOLD = 0.2;
-    private static final double ROOM_SIMILARITY_THRESHOLD = 0.15;
+    private static final double SIMILARITY_THRESHOLD = 0.515;
+    private static final double ROOM_SIMILARITY_THRESHOLD = 0.3;
     private static final int MAX_HOTELS = 80;
     private static final int MAX_ROOMS = 200;
     private static final String EMBEDDING_API_URL = "https://final-pbl-flaskapi.onrender.com/embed";

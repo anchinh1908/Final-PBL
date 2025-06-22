@@ -376,29 +376,6 @@ public class AuthController {
             email = principal.getAttribute("email");
             name = principal.getAttribute("name");
 
-//            Object pictureObj = principal.getAttribute("picture");
-//            if (pictureObj instanceof Map) {
-//                Map<String, Object> pictureData = (Map<String, Object>) pictureObj;
-//                Object dataObj = pictureData.get("data");
-//                if (dataObj instanceof Map) {
-//                    Map<String, Object> dataMap = (Map<String, Object>) dataObj;
-//                    Object urlObj = dataMap.get("url");
-//                    if (urlObj instanceof String) {
-//                        picture = (String) urlObj;
-//                    } else {
-//                        logger.warn("Picture URL is not a String: {}", urlObj);
-//                    }
-//                } else {
-//                    logger.warn("Picture data is not a Map: {}", dataObj);
-//                }
-//            } else {
-//                logger.warn("Picture attribute is not a Map: {}", pictureObj);
-//            }
-//        } else {
-//            logger.error("Unsupported OAuth2 provider: {}", provider);
-//            String errorMessage = URLEncoder.encode("Nhà cung cấp OAuth2 không được hỗ trợ: " + provider, StandardCharsets.UTF_8);
-//            response.sendRedirect("http://localhost:5173/callback?status=false&message=" + errorMessage);
-//            return;
             Object pictureObj = principal.getAttribute("picture");
             if (pictureObj instanceof Map) {
                 Map<String, Object> pictureData = (Map<String, Object>) pictureObj;
